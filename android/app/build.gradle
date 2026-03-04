@@ -1,0 +1,44 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'com.shenanigans.jiujitsu'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.shenanigans.jiujitsu'
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            applicationIdSuffix '.debug'
+            debuggable true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+}
+
+dependencies {
+    implementation 'com.getcapacitor:core:6.0.0'
+    implementation 'com.getcapacitor.plugin:status-bar:6.0.0'
+    implementation 'com.getcapacitor.plugin:app:6.0.0'
+    implementation 'com.getcapacitor.plugin:haptics:6.0.0'
+
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.webkit:webkit:1.9.0'
+}

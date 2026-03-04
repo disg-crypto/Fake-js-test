@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" />
+  <title>Jiu-Jitsu Shenanigans</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header class="app-header">
+    <h1>🥋 Jiu-Jitsu Shenanigans</h1>
+    <p class="tagline">Train. Roll. Tap. Repeat.</p>
+  </header>
+
+  <!-- ── Nav tabs ── -->
+  <nav class="tab-nav" role="tablist">
+    <button class="tab-btn active" data-tab="techniques" role="tab" aria-selected="true">Techniques</button>
+    <button class="tab-btn"        data-tab="timer"      role="tab" aria-selected="false">Timer</button>
+    <button class="tab-btn"        data-tab="belt"       role="tab" aria-selected="false">Belt</button>
+  </nav>
+
+  <!-- ══════════════════════════════════
+       TAB 1 – Technique Randomiser
+  ══════════════════════════════════ -->
+  <section id="tab-techniques" class="tab-panel active" role="tabpanel">
+    <div class="card">
+      <h2>Technique Randomiser</h2>
+      <p class="hint">Spin the wheel. No excuses.</p>
+
+      <div class="filter-row">
+        <label for="position-filter">Position:</label>
+        <select id="position-filter">
+          <option value="all">All Positions</option>
+          <option value="guard">Guard</option>
+          <option value="mount">Mount</option>
+          <option value="back">Back Control</option>
+          <option value="side">Side Control</option>
+          <option value="turtle">Turtle</option>
+          <option value="standing">Standing</option>
+        </select>
+      </div>
+
+      <div id="technique-display" class="technique-display" aria-live="polite">
+        <div class="technique-position">---</div>
+        <div class="technique-name">Press the button!</div>
+        <div class="technique-type badge">---</div>
+        <div class="technique-desc">Hit "Randomise" to get your move.</div>
+      </div>
+
+      <button id="btn-randomise" class="btn btn-primary">🎲 Randomise!</button>
+      <button id="btn-save-tech" class="btn btn-secondary">📌 Save Technique</button>
+
+      <div id="saved-techniques" class="saved-list">
+        <h3>Saved for Today</h3>
+        <ul id="saved-tech-list"></ul>
+        <button id="btn-clear-saved" class="btn btn-danger btn-sm">Clear</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════
+       TAB 2 – Round Timer
+  ══════════════════════════════════ -->
+  <section id="tab-timer" class="tab-panel" role="tabpanel" hidden>
+    <div class="card">
+      <h2>Round Timer</h2>
+
+      <div class="timer-settings">
+        <div class="setting-group">
+          <label for="round-minutes">Round (min)</label>
+          <input type="number" id="round-minutes" value="5" min="1" max="60" />
+        </div>
+        <div class="setting-group">
+          <label for="rest-seconds">Rest (sec)</label>
+          <input type="number" id="rest-seconds" value="30" min="0" max="300" />
+        </div>
+        <div class="setting-group">
+          <label for="num-rounds">Rounds</label>
+          <input type="number" id="num-rounds" value="3" min="1" max="20" />
+        </div>
+      </div>
+
+      <div class="timer-display" id="timer-display">
+        <div class="timer-phase" id="timer-phase">Ready</div>
+        <div class="timer-clock" id="timer-clock">5:00</div>
+        <div class="timer-progress-bar"><div id="timer-bar" class="timer-bar-fill"></div></div>
+        <div class="timer-rounds-info" id="timer-rounds-info">Round 1 / 3</div>
+      </div>
+
+      <div class="timer-controls">
+        <button id="btn-start-timer" class="btn btn-primary">▶ Start</button>
+        <button id="btn-pause-timer" class="btn btn-secondary" disabled>⏸ Pause</button>
+        <button id="btn-reset-timer" class="btn btn-danger">↺ Reset</button>
+      </div>
+
+      <div class="shenanigan-tip" id="shenanigan-tip">
+        <strong>Tip:</strong> <span id="tip-text">Loading tip…</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════
+       TAB 3 – Belt Tracker
+  ══════════════════════════════════ -->
+  <section id="tab-belt" class="tab-panel" role="tabpanel" hidden>
+    <div class="card">
+      <h2>Belt Tracker</h2>
+
+      <div class="belt-display" id="belt-display">
+        <div class="belt-icon" id="belt-icon">⬜</div>
+        <div class="belt-label" id="belt-label">White Belt</div>
+        <div class="stripes-row" id="stripes-row"></div>
+      </div>
+
+      <div class="belt-controls">
+        <button id="btn-add-stripe" class="btn btn-primary">+ Add Stripe</button>
+        <button id="btn-promote"    class="btn btn-gold">🏆 Promote Belt</button>
+        <button id="btn-remove-stripe" class="btn btn-danger btn-sm">− Remove Stripe</button>
+      </div>
+
+      <div class="sessions-section">
+        <h3>Training Log</h3>
+        <button id="btn-log-session" class="btn btn-secondary">✅ Log Session Today</button>
+        <div class="session-stats">
+          <div class="stat-box">
+            <div class="stat-num" id="stat-total">0</div>
+            <div class="stat-lbl">Total Sessions</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="stat-week">0</div>
+            <div class="stat-lbl">This Week</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="stat-streak">0</div>
+            <div class="stat-lbl">Day Streak 🔥</div>
+          </div>
+        </div>
+        <ul id="session-log-list" class="session-log"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Toast notification ── -->
+  <div id="toast" class="toast" aria-live="assertive" role="status"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/techniques.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/belt.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
