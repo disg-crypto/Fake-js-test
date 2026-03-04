@@ -8,11 +8,25 @@
 </head>
 <body>
 
-  <!-- ===== CHARACTER SELECT SCREEN ===== -->
+  <!-- =====================================================
+       CHARACTER SELECT SCREEN
+  ====================================================== -->
   <div id="screen-select" class="screen active">
-    <div class="title-logo">
-      <h1>JUJUTSU<br><span>SHENANIGANS</span></h1>
-      <p class="subtitle">FAKE JS TEST BUILD</p>
+
+    <!-- Top bar: currency + store + settings -->
+    <div class="select-topbar">
+      <div class="topbar-currency">
+        <span class="robux-icon">R$</span>
+        <span id="robux-count">0</span>
+      </div>
+      <div class="topbar-title">
+        <h1>JUJUTSU<span>SHENANIGANS</span></h1>
+        <p class="subtitle">FAKE JS TEST BUILD</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="topbar-btn" id="btn-open-store" title="Store">🛒</button>
+        <button class="topbar-btn" id="btn-open-settings" title="Settings">⚙️</button>
+      </div>
     </div>
 
     <!-- Mode Toggle -->
@@ -37,8 +51,40 @@
       </div>
     </div>
 
-    <!-- Character Grid -->
-    <div class="char-grid" id="char-grid"></div>
+    <!-- Character Filter Tabs -->
+    <div class="char-filter-tabs" id="char-filter-tabs">
+      <button class="char-tab active" data-filter="all">ALL</button>
+      <button class="char-tab"        data-filter="free">FREE</button>
+      <button class="char-tab"        data-filter="EA">EARLY ACCESS</button>
+      <button class="char-tab"        data-filter="OP">OVERPOWERED</button>
+    </div>
+
+    <!-- Select main area: grid + info panel -->
+    <div class="select-main">
+      <div class="char-grid" id="char-grid"></div>
+
+      <!-- Character info panel (right, shown when char selected) -->
+      <div class="char-info-panel" id="char-info-panel">
+        <div class="cip-placeholder">← Select a character</div>
+        <div class="cip-content hidden" id="cip-content">
+          <div class="cip-header">
+            <span class="cip-icon" id="cip-icon">👊</span>
+            <div class="cip-names">
+              <div class="cip-name" id="cip-name">VESSEL</div>
+              <div class="cip-sub"  id="cip-sub">Yuji Itadori</div>
+            </div>
+            <div class="cip-hp-pill" id="cip-hp">HP 250</div>
+          </div>
+          <div class="cip-desc" id="cip-desc"></div>
+          <div class="cip-section-label">BASE MOVES</div>
+          <div class="cip-moves" id="cip-moves"></div>
+          <div class="cip-section-label">SPECIAL</div>
+          <div class="cip-special" id="cip-special"></div>
+          <div class="cip-section-label">AWAKENING</div>
+          <div class="cip-awaken" id="cip-awaken"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Boss roster (shown in boss mode) -->
     <div class="boss-grid hidden" id="boss-preview">
@@ -49,13 +95,21 @@
     <button class="btn-play" id="btn-play" disabled>SELECT A CHARACTER</button>
   </div>
 
-  <!-- ===== GAME SCREEN ===== -->
+  <!-- =====================================================
+       GAME SCREEN
+  ====================================================== -->
   <div id="screen-game" class="screen">
     <canvas id="game-canvas"></canvas>
 
     <div id="hud">
 
-      <!-- BOSS HP BAR (shown only in boss mode) -->
+      <!-- In-game Settings / Emote buttons (top-right HUD) -->
+      <div id="hud-top-right">
+        <button class="hud-icon-btn" id="btn-hud-settings" title="Settings">⚙️</button>
+        <button class="hud-icon-btn" id="btn-hud-emote"    title="Emotes (B)">😄</button>
+      </div>
+
+      <!-- BOSS HP BAR -->
       <div id="boss-bar-section" class="hidden">
         <div id="boss-name-label">RYOMEN SUKUNA</div>
         <div id="boss-phase-label">KING OF CURSES</div>
@@ -66,7 +120,7 @@
         <div id="boss-hp-text">1200 / 1200</div>
       </div>
 
-      <!-- Player Info (bottom-left) -->
+      <!-- Player Info -->
       <div class="hud-player" id="hud-player">
         <div class="hud-name" id="player-name-label">VESSEL</div>
         <div class="hp-bar-wrap">
@@ -79,7 +133,7 @@
         <div class="ult-label">ULTIMATE</div>
       </div>
 
-      <!-- Enemy Info (top-right, PVP only) -->
+      <!-- Enemy Info (PVP only) -->
       <div class="hud-enemy" id="hud-enemy">
         <div class="hud-name" id="enemy-name-label">HONORED ONE</div>
         <div class="hp-bar-wrap">
@@ -113,22 +167,19 @@
       <!-- Combat Log -->
       <div id="combat-log"></div>
 
-      <!-- Awakening / Phase Banner -->
+      <!-- Banners -->
       <div id="awaken-banner" class="hidden">AWAKENING!</div>
-      <div id="phase-banner" class="hidden"></div>
+      <div id="phase-banner"  class="hidden"></div>
+      <div id="enrage-flash"  class="hidden"></div>
+      <div id="map-toast"     class="hidden"></div>
 
-      <!-- Enrage screen flash overlay -->
-      <div id="enrage-flash" class="hidden"></div>
-
-      <!-- Map Name Toast -->
-      <div id="map-toast" class="hidden"></div>
-
-      <!-- Mobile Touch Controls -->
+      <!-- Touch Controls -->
       <div id="touch-controls">
         <div class="touch-row">
           <button class="touch-btn" id="t-m1">M1</button>
           <button class="touch-btn" id="t-block">BLOCK</button>
           <button class="touch-btn" id="t-dash">DASH</button>
+          <button class="touch-btn emote-touch" id="t-emote">😄</button>
         </div>
         <div class="touch-row">
           <button class="touch-btn ability" id="t-1">1</button>
@@ -150,11 +201,133 @@
       <button class="btn-play" id="btn-rematch">REMATCH</button>
       <button class="btn-play secondary" id="btn-back">BACK TO SELECT</button>
     </div>
+
+    <!-- Emote Wheel (in-game) -->
+    <div id="emote-wheel" class="hidden">
+      <div class="ew-backdrop"></div>
+      <div class="ew-center-label">EMOTES</div>
+      <div class="ew-slots" id="ew-slots"></div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       SETTINGS MODAL
+  ====================================================== -->
+  <div id="modal-settings" class="modal hidden">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <span>⚙️ SETTINGS</span>
+        <button class="modal-close" id="settings-close">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <div class="settings-section">GRAPHICS</div>
+        <div class="setting-row">
+          <span class="setting-label">Quality</span>
+          <div class="btn-group" id="sg-quality">
+            <button class="sg-btn" data-val="low">Low</button>
+            <button class="sg-btn active" data-val="medium">Medium</button>
+            <button class="sg-btn" data-val="high">High</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Screen Shake</span>
+          <div class="toggle-switch" id="sg-shake">
+            <div class="toggle-knob"></div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">FX Intensity</span>
+          <div class="slider-wrap">
+            <input type="range" min="0" max="100" value="100" id="sg-fx" class="setting-slider">
+            <span class="slider-val" id="sg-fx-val">100%</span>
+          </div>
+        </div>
+
+        <div class="settings-section">AUDIO</div>
+        <div class="setting-row">
+          <span class="setting-label">Music Volume</span>
+          <div class="slider-wrap">
+            <input type="range" min="0" max="100" value="50" id="sg-music" class="setting-slider">
+            <span class="slider-val" id="sg-music-val">50%</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">SFX Volume</span>
+          <div class="slider-wrap">
+            <input type="range" min="0" max="100" value="75" id="sg-sfx" class="setting-slider">
+            <span class="slider-val" id="sg-sfx-val">75%</span>
+          </div>
+        </div>
+
+        <div class="settings-section">GAMEPLAY</div>
+        <div class="setting-row">
+          <span class="setting-label">Damage Numbers</span>
+          <div class="toggle-switch active" id="sg-damnums">
+            <div class="toggle-knob"></div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Shift-Lock</span>
+          <div class="toggle-switch active" id="sg-shiftlock">
+            <div class="toggle-knob"></div>
+          </div>
+        </div>
+        <div class="setting-row">
+          <span class="setting-label">Auto-Sprint</span>
+          <div class="toggle-switch active" id="sg-autosprint">
+            <div class="toggle-knob"></div>
+          </div>
+        </div>
+
+        <div class="settings-section">CONTROLS</div>
+        <div class="controls-grid">
+          <div class="ctrl-item"><span class="ctrl-key">Z / Click</span><span class="ctrl-act">M1 Attack</span></div>
+          <div class="ctrl-item"><span class="ctrl-key">F (hold)</span><span class="ctrl-act">Block</span></div>
+          <div class="ctrl-item"><span class="ctrl-key">Shift</span><span class="ctrl-act">Dash</span></div>
+          <div class="ctrl-item"><span class="ctrl-key">1 2 3 4</span><span class="ctrl-act">Abilities</span></div>
+          <div class="ctrl-item"><span class="ctrl-key">R</span><span class="ctrl-act">Special Move</span></div>
+          <div class="ctrl-item"><span class="ctrl-key">E</span><span class="ctrl-act">Awakening</span></div>
+          <div class="ctrl-item"><span class="ctrl-key">B</span><span class="ctrl-act">Emote Wheel</span></div>
+          <div class="ctrl-item"><span class="ctrl-key">Esc</span><span class="ctrl-act">Back / Close</span></div>
+        </div>
+
+        <button class="setting-reset-btn" id="sg-reset">Reset to Defaults</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       STORE MODAL
+  ====================================================== -->
+  <div id="modal-store" class="modal hidden">
+    <div class="modal-panel store-panel">
+      <div class="modal-header store-header">
+        <span>🛒 STORE</span>
+        <div class="store-header-right">
+          <span class="store-robux"><span class="robux-icon">R$</span> <span id="store-robux-display">0</span></span>
+          <span class="store-demo-tag">DEMO MODE</span>
+          <button class="modal-close" id="store-close">✕</button>
+        </div>
+      </div>
+
+      <!-- Store Tabs -->
+      <div class="store-tabs">
+        <button class="store-tab active" data-tab="featured">⭐ Featured</button>
+        <button class="store-tab"        data-tab="passes">🎮 Gamepasses</button>
+        <button class="store-tab"        data-tab="emotes">😄 Emotes</button>
+        <button class="store-tab"        data-tab="bundles">📦 Bundles</button>
+      </div>
+
+      <!-- Store Grid -->
+      <div class="store-grid" id="store-grid"></div>
+    </div>
   </div>
 
   <script src="js/characters.js"></script>
   <script src="js/map.js"></script>
   <script src="js/vfx.js"></script>
+  <script src="js/ui.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

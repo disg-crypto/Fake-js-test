@@ -32,6 +32,7 @@ const VFX = (() => {
   let _sx = 0, _sy = 0;
 
   function shake(amt) {
+    if (window.GAME_SETTINGS && !window.GAME_SETTINGS.screenShake) return;
     shakeAmt = Math.max(shakeAmt, amt);
   }
 

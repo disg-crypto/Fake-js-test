@@ -115,6 +115,10 @@ class Fighter {
     this.action    = 'idle';
     this.actionTimer = 0;
     this.hitFlash  = 0;
+    // Emote state
+    this.emoteIcon  = null;
+    this.emoteTimer = 0;
+    this.emoteAnim  = 0;
     this.width  = Math.round(44 * this.scale);
     this.height = Math.round(72 * this.scale);
   }
@@ -163,13 +167,17 @@ class Fighter {
    CHARACTER / BOSS SELECT SCREEN
    ========================================================= */
 function buildCharSelect() {
+  const filter = window.currentCharFilter || 'all';
   DOM.charGrid.innerHTML = '';
-  CHARACTERS.forEach(c => {
+  const filtered = filter === 'all'  ? CHARACTERS :
+                   filter === 'free' ? CHARACTERS.filter(c => !c.badge || c.badge === 'free') :
+                                       CHARACTERS.filter(c => c.badge === filter);
+  filtered.forEach(c => {
     const card = document.createElement('div');
-    card.className = 'char-card';
+    card.className = 'char-card' + (c.id === state.selectedCharId ? ' selected' : '');
     card.dataset.id = c.id;
     card.innerHTML = `
-      ${c.badge ? `<div class="char-badge ${c.badgeType || ''}">${c.badge}</div>` : ''}
+      ${c.badge ? `<div class="char-badge badge-${(c.badge||'').toLowerCase()}">${c.badge}</div>` : ''}
       <div class="char-icon">${c.icon}</div>
       <div class="char-card-name">${c.name}</div>
       <div class="char-card-sub">${c.subName}</div>
@@ -199,6 +207,7 @@ function selectChar(id) {
   });
   DOM.btnPlay.disabled = false;
   DOM.btnPlay.textContent = state.gameMode === 'boss' ? 'CHALLENGE BOSS!' : 'FIGHT!';
+  if (typeof window.updateCharInfoPanel === 'function') window.updateCharInfoPanel(id);
 }
 
 // Mode buttons
@@ -377,6 +386,7 @@ function log(msg, type = 'system') {
    FLOATING DAMAGE NUMBERS
    ========================================================= */
 function spawnDmgNum(text, x, y, color = '#ff6b6b') {
+  if (window.GAME_SETTINGS && !window.GAME_SETTINGS.damageNums) return;
   const el = document.createElement('div');
   el.className = 'dmg-num';
   el.textContent = text;
@@ -718,6 +728,13 @@ function updateFighter(fighter, dt) {
     }
   }
 
+  // Emote countdown
+  if (fighter.emoteTimer > 0) {
+    fighter.emoteTimer -= dt;
+    fighter.emoteAnim  += dt;
+    if (fighter.emoteTimer <= 0) { fighter.emoteIcon = null; fighter.emoteTimer = 0; }
+  }
+
   // Boss phase check
   if (fighter.isBoss) checkBossPhase(fighter);
 }
@@ -857,6 +874,19 @@ function drawFighter(f) {
     ctx.stroke();
   }
 
+  // Emote bubble
+  if (f.emoteIcon) {
+    const bounce = Math.sin(f.emoteAnim * 4) * 3;
+    ctx.font = '28px serif';
+    ctx.textAlign = 'center';
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath();
+    ctx.ellipse(2, -H - 48 + bounce + 2, 20, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillText(f.emoteIcon, 0, -H - 38 + bounce);
+  }
+
   ctx.restore();
 }
 
@@ -939,8 +969,22 @@ function handleKey(code, down) {
     case 'Digit4':   if (down) doMove(p, en, 3); break;
     case 'KeyR':     if (down) doSpecial(p, en); break;
     case 'KeyE':     if (down) doAwaken(p);      break;
+    case 'KeyB':     if (down) {
+      if (window.emoteWheelOpen) { if (typeof window.closeEmoteWheel === 'function') window.closeEmoteWheel(); }
+      else { if (typeof window.openEmoteWheel === 'function') window.openEmoteWheel(); }
+    } break;
   }
 }
+
+/* ── Emote trigger (called by emote wheel) ── */
+window.triggerEmote = function(emote) {
+  const p = state.player;
+  if (!p) return;
+  p.emoteIcon  = emote.icon;
+  p.emoteTimer = 3.0;
+  p.emoteAnim  = 0;
+  log(`${p.isPlayer ? 'You' : 'Enemy'} played emote: ${emote.name}`, 'system');
+};
 
 // Canvas tap = M1
 DOM.canvas.addEventListener('click', () => {
