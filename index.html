@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Jujutsu Shenanigans</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Character Select Screen -->
+  <div id="screen-select" class="screen active">
+    <div class="title-logo">
+      <h1>JUJUTSU<br><span>SHENANIGANS</span></h1>
+      <p class="subtitle">FAKE JS TEST BUILD</p>
+    </div>
+    <div class="char-grid" id="char-grid"></div>
+    <button class="btn-play" id="btn-play" disabled>SELECT A CHARACTER</button>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="screen-game" class="screen">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+      <!-- Player Info -->
+      <div class="hud-player" id="hud-player">
+        <div class="hud-name" id="player-name-label">VESSEL</div>
+        <div class="hp-bar-wrap">
+          <div class="hp-bar" id="player-hp-bar"></div>
+        </div>
+        <div class="hp-text" id="player-hp-text">250 / 250</div>
+        <div class="ult-bar-wrap">
+          <div class="ult-bar" id="player-ult-bar"></div>
+        </div>
+        <div class="ult-label">ULTIMATE</div>
+      </div>
+
+      <!-- Enemy Info -->
+      <div class="hud-enemy" id="hud-enemy">
+        <div class="hud-name" id="enemy-name-label">HONORED ONE</div>
+        <div class="hp-bar-wrap">
+          <div class="hp-bar enemy" id="enemy-hp-bar"></div>
+        </div>
+        <div class="hp-text" id="enemy-hp-text">300 / 300</div>
+      </div>
+
+      <!-- Move Slots -->
+      <div id="move-bar">
+        <div class="move-slot" id="slot-1"><span class="key">1</span><span class="move-name" id="move-1-name">-</span><div class="cd-overlay" id="cd-1"></div></div>
+        <div class="move-slot" id="slot-2"><span class="key">2</span><span class="move-name" id="move-2-name">-</span><div class="cd-overlay" id="cd-2"></div></div>
+        <div class="move-slot" id="slot-3"><span class="key">3</span><span class="move-name" id="move-3-name">-</span><div class="cd-overlay" id="cd-3"></div></div>
+        <div class="move-slot" id="slot-4"><span class="key">4</span><span class="move-name" id="move-4-name">-</span><div class="cd-overlay" id="cd-4"></div></div>
+      </div>
+
+      <!-- Special / Awakening -->
+      <div id="special-bar">
+        <div class="move-slot special" id="slot-r">
+          <span class="key">R</span>
+          <span class="move-name" id="move-r-name">SPECIAL</span>
+          <div class="cd-overlay" id="cd-r"></div>
+        </div>
+        <div class="move-slot awakening" id="slot-awaken">
+          <span class="key">E</span>
+          <span class="move-name">AWAKEN</span>
+          <div class="cd-overlay" id="cd-awaken"></div>
+        </div>
+      </div>
+
+      <!-- Combat Log -->
+      <div id="combat-log"></div>
+
+      <!-- Awakening Banner -->
+      <div id="awaken-banner" class="hidden">AWAKENING!</div>
+
+      <!-- Mobile Touch Controls -->
+      <div id="touch-controls">
+        <div class="touch-row">
+          <button class="touch-btn" id="t-m1">M1</button>
+          <button class="touch-btn" id="t-block">BLOCK</button>
+          <button class="touch-btn" id="t-dash">DASH</button>
+        </div>
+        <div class="touch-row">
+          <button class="touch-btn ability" id="t-1">1</button>
+          <button class="touch-btn ability" id="t-2">2</button>
+          <button class="touch-btn ability" id="t-3">3</button>
+          <button class="touch-btn ability" id="t-4">4</button>
+        </div>
+        <div class="touch-row">
+          <button class="touch-btn special" id="t-r">SPECIAL (R)</button>
+          <button class="touch-btn awaken" id="t-e">AWAKEN (E)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over / Victory overlay -->
+    <div id="result-overlay" class="hidden">
+      <div id="result-text"></div>
+      <button class="btn-play" id="btn-rematch">REMATCH</button>
+      <button class="btn-play secondary" id="btn-back">BACK TO SELECT</button>
+    </div>
+  </div>
+
+  <script src="js/characters.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
