@@ -391,21 +391,45 @@ function spawnDmgNum(text, x, y, color = '#ff6b6b') {
 /* =========================================================
    COMBAT ACTIONS
    ========================================================= */
+
+// M1 hit range — bosses have slightly longer reach
+const M1_RANGE = 135;
+
 function doM1(attacker, defender) {
   if (attacker.m1Cooldown > 0 || attacker.stunTimer > 0) return;
   if (attacker.actionTimer > 0 && attacker.action !== 'idle') return;
 
-  const comboHit = attacker.m1Combo < 2 ? 3 : 4;
-  const dmg = defender.takeDamage(comboHit);
-  attacker.addUlt(comboHit * 0.2);
-  attacker.m1Combo = (attacker.m1Combo + 1) % 4;
-  attacker.m1ComboTimer = 1.7;
-  attacker.m1Cooldown = 0.25;
-  attacker.action = 'm1';
+  attacker.m1Cooldown  = attacker.isBoss ? 0.2 : 0.25;
+  attacker.action      = 'm1';
   attacker.actionTimer = 0.25;
 
-  log(`${attacker.isPlayer ? 'You' : 'Enemy'} M1 — ${dmg} dmg`, 'dmg');
-  spawnDmgNum(dmg, defender.x + (attacker.isPlayer ? 20 : -20), defender.y - 60, '#ff6b6b');
+  // Face toward defender
+  attacker.facing = attacker.x < defender.x ? 1 : -1;
+
+  const dist = Math.abs(attacker.x - defender.x);
+  const reach = M1_RANGE * ((attacker.isBoss ? 1.3 : 1) + (attacker.scale || 1) * 0.2);
+
+  if (dist > reach) {
+    // Miss — swing VFX only
+    VFX.m1Swing(attacker.x, attacker.y, attacker.facing, attacker.color);
+    return;
+  }
+
+  // Combo scaling: hits 1-2 = 3 dmg, hits 3-4 = 4 dmg; bosses deal more
+  const baseDmg = attacker.m1Combo < 2 ? 3 : 4;
+  const hitDmg  = attacker.isBoss ? baseDmg * 4 : baseDmg;
+  const dmg     = defender.takeDamage(hitDmg);
+
+  attacker.addUlt(hitDmg * 0.2);
+  attacker.m1Combo      = (attacker.m1Combo + 1) % 4;
+  attacker.m1ComboTimer = 1.7;
+
+  // Per-character M1 VFX
+  VFX.m1Hit(attacker.def.id, attacker.x, defender.x, defender.y);
+
+  const comboLabel = ['1ST', '2ND', '3RD', '4TH'][attacker.m1Combo === 0 ? 3 : attacker.m1Combo - 1];
+  log(`${attacker.isPlayer ? 'You' : 'Enemy'} M1 [${comboLabel}] — ${dmg} dmg`, 'dmg');
+  spawnDmgNum(dmg, defender.x + (attacker.isPlayer ? 22 : -22), defender.y - 60, '#ff8080');
 }
 
 function doMove(attacker, defender, moveIndex) {
@@ -420,6 +444,8 @@ function doMove(attacker, defender, moveIndex) {
   if (move.type === 'defense' || move.damage === 0) {
     attacker.invincible = true;
     setTimeout(() => { attacker.invincible = false; }, 800);
+    // Barrier/defense VFX on self
+    VFX.ring(attacker.x, attacker.y, attacker.color, 65, 3, 0.35);
     log(`${attacker.isPlayer ? 'You' : 'Enemy'} used ${move.name}!`, 'system');
     return;
   }
@@ -427,13 +453,20 @@ function doMove(attacker, defender, moveIndex) {
   const dmg = defender.takeDamage(move.damage);
   attacker.addUlt(move.damage * 0.25);
 
+  // Move VFX
+  VFX.moveHit(move.type, defender.x, defender.y, attacker.color, move.damage);
+
   if (move.type === 'counter') {
     defender.stunTimer = 1.5;
     log(`COUNTER! ${move.name} — ${dmg} dmg, stun`, 'special');
   } else {
     log(`${attacker.isPlayer ? 'You' : 'Enemy'} ${move.name} — ${dmg} dmg`, 'dmg');
   }
-  spawnDmgNum(dmg, defender.x, defender.y - 60 - Math.random() * 20, '#ff6b6b');
+  const numColor = move.type === 'slash' ? '#ff8844'
+    : move.type === 'ranged' ? '#44aaff'
+    : move.type === 'aoe'    ? '#ffcc44'
+    : '#ff8080';
+  spawnDmgNum(dmg, defender.x, defender.y - 60 - Math.random() * 20, numColor);
 }
 
 function doSpecial(attacker, defender) {
@@ -447,11 +480,14 @@ function doSpecial(attacker, defender) {
 
   if (sp.heal) {
     attacker.heal(sp.heal);
+    VFX.ring(attacker.x, attacker.y, '#69db7c', 90, 4, 0.4);
+    VFX.ring(attacker.x, attacker.y, '#ffffff', 55, 2, 0.28);
     log(`JACKPOT! ${sp.name} — +${sp.heal} HP!`, 'heal');
     spawnDmgNum(`+${sp.heal}`, attacker.x, attacker.y - 80, '#69db7c');
   } else {
     const dmg = defender.takeDamage(sp.damage);
     attacker.addUlt(sp.damage * 0.1);
+    VFX.specialHit(defender.x, defender.y, attacker.color);
     log(`SPECIAL: ${sp.name} — ${dmg} DAMAGE!`, 'special');
     spawnDmgNum(dmg, defender.x, defender.y - 80, '#ffd43b');
   }
@@ -472,6 +508,8 @@ function doAwaken(fighter) {
   const bonus = Math.floor(fighter.maxHp * fighter.def.awakening.hpBonus);
   fighter.heal(bonus);
 
+  VFX.awakenBurst(fighter.x, fighter.y, fighter.color);
+
   log(`${fighter.isPlayer ? 'YOU' : 'ENEMY'} AWAKENED → ${fighter.def.awakening.name}!`, 'special');
 
   if (fighter.isPlayer) {
@@ -489,11 +527,13 @@ function doBlock(fighter, active) {
 
 function doDash(fighter) {
   if (fighter.dashing) return;
-  fighter.dashing   = true;
-  fighter.dashTimer = 0.3;
+  fighter.dashing    = true;
+  fighter.dashTimer  = 0.3;
   fighter.invincible = true;
   fighter.vx = fighter.facing * 180;
   setTimeout(() => { fighter.invincible = false; }, 320);
+  // Initial dash burst
+  VFX.ring(fighter.x, fighter.y, fighter.color, 40, 2, 0.2);
 }
 
 /* =========================================================
@@ -520,7 +560,10 @@ function triggerPhaseTransition(boss, phase) {
   // Brief heal on phase change
   boss.heal(Math.floor(boss.maxHp * 0.08));
 
-  // Visual effects
+  // Canvas VFX
+  VFX.phaseTransition(boss.x, boss.y, boss.color);
+
+  // HTML overlay flash
   state.enrageFlash = 1;
   DOM.enrageFlashEl.classList.remove('hidden');
   setTimeout(() => DOM.enrageFlashEl.classList.add('hidden'), 1200);
@@ -620,10 +663,12 @@ function updateFighter(fighter, dt) {
   fighter.cooldowns = fighter.cooldowns.map(cd => Math.max(0, cd - dt));
   if (fighter.hitFlash    > 0) fighter.hitFlash    = Math.max(0, fighter.hitFlash - 1);
 
-  // Dash friction
+  // Dash friction + trail
   if (!fighter.dashing || fighter.dashTimer <= 0) {
     fighter.dashing = false;
     fighter.vx *= 0.72;
+  } else if (Math.random() < 0.55) {
+    VFX.dashTrail(fighter.x, fighter.y, fighter.color, fighter.facing);
   }
 
   // Gravity
@@ -685,15 +730,27 @@ function render() {
   const H = DOM.canvas.height;
   const t = state.time;
 
-  // 1. Map background
+  // 1. Map background (no shake — stays stable)
   renderMapBackground(ctx, W, H, state.mapId, t);
 
-  // 2. Map foreground + platforms
+  // 2. Everything that shakes together
+  ctx.save();
+  ctx.translate(VFX.sx, VFX.sy);
+
+  // 3. Map foreground + platforms
   renderMapForeground(ctx, W, H, state.mapId, t, state.platforms);
 
-  // 3. Fighters
+  // 4. Fighters
   drawFighter(state.player);
   drawFighter(state.enemy);
+
+  // 5. World-space VFX (particles, slashes, rings, shockwaves)
+  VFX.renderWorld(ctx);
+
+  ctx.restore();
+
+  // 6. Screen-space VFX (flash overlays — no shake)
+  VFX.renderScreen(ctx, W, H);
 }
 
 function drawFighter(f) {
@@ -817,6 +874,7 @@ function tick(ts = 0) {
   updateFighter(state.player, dt);
   updateFighter(state.enemy,  dt);
   updateAI(dt);
+  VFX.update(dt);
   render();
   updateHUD();
   checkEndCondition();
