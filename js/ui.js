@@ -183,11 +183,48 @@ let robuxBalance = 0;
 })();
 
 /* ══════════════════════════════════════════════════
+   CHARACTER DROPDOWN PANEL  (slides down from topbar)
+══════════════════════════════════════════════════ */
+(function initCharDropdown() {
+  const panel      = document.getElementById('char-dropdown');
+  const navBtn     = document.getElementById('btn-nav-chars');
+  const closeBtn   = document.getElementById('btn-chars-close');
+  const lobbyBtn   = document.getElementById('lobby-selected-char');
+
+  function openPanel() {
+    panel && panel.classList.add('open');
+    navBtn && navBtn.classList.add('panel-open');
+  }
+  function closePanel() {
+    panel && panel.classList.remove('open');
+    navBtn && navBtn.classList.remove('panel-open');
+  }
+  function togglePanel() {
+    panel && panel.classList.contains('open') ? closePanel() : openPanel();
+  }
+
+  navBtn   && navBtn.addEventListener('click', togglePanel);
+  closeBtn && closeBtn.addEventListener('click', closePanel);
+  lobbyBtn && lobbyBtn.addEventListener('click', openPanel);
+
+  // Close when clicking outside the panel (but not the nav btn)
+  document.addEventListener('click', e => {
+    if (!panel || !panel.classList.contains('open')) return;
+    if (panel.contains(e.target) || (navBtn && navBtn.contains(e.target))) return;
+    closePanel();
+  });
+
+  window.openCharDropdown  = openPanel;
+  window.closeCharDropdown = closePanel;
+})();
+
+/* ══════════════════════════════════════════════════
    STORE MODAL
 ══════════════════════════════════════════════════ */
 (function initStore() {
   const modal     = document.getElementById('modal-store');
-  const openBtn   = document.getElementById('btn-open-store');
+  const openBtn   = document.getElementById('btn-open-store') ||
+                    document.getElementById('btn-nav-store');
   const closeBtn  = document.getElementById('store-close');
   const grid      = document.getElementById('store-grid');
   const robuxDisp = document.getElementById('store-robux-display');
@@ -324,6 +361,12 @@ window.updateCharInfoPanel = function(id) {
 
   if (cipHolder) cipHolder.style.display = 'none';
   cipContent.classList.remove('hidden');
+
+  // Update lobby badge
+  const lobbyIcon = document.getElementById('lobby-char-icon');
+  const lobbyName = document.getElementById('lobby-char-name');
+  if (lobbyIcon) lobbyIcon.textContent = char.icon;
+  if (lobbyName) lobbyName.textContent = char.name;
 
   document.getElementById('cip-icon').textContent = char.icon;
   document.getElementById('cip-name').textContent = char.name;

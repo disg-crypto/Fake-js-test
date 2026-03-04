@@ -9,90 +9,133 @@
 <body>
 
   <!-- =====================================================
-       CHARACTER SELECT SCREEN
+       LOBBY / CHARACTER SELECT SCREEN
   ====================================================== -->
   <div id="screen-select" class="screen active">
 
-    <!-- Top bar: currency + store + settings -->
-    <div class="select-topbar">
-      <div class="topbar-currency">
-        <span class="robux-icon">R$</span>
-        <span id="robux-count">0</span>
+    <!-- ── JJS-style Top Navigation Bar ── -->
+    <div class="jjs-topbar">
+
+      <!-- Left nav buttons -->
+      <div class="jjs-nav-left">
+        <button class="jjs-nav-btn" id="btn-nav-chars" data-panel="chars">
+          <span class="jjs-nav-icon">👤</span>
+          <span class="jjs-nav-label">Characters</span>
+        </button>
+        <button class="jjs-nav-btn" id="btn-nav-store" data-panel="store">
+          <span class="jjs-nav-icon">🛒</span>
+          <span class="jjs-nav-label">Store</span>
+        </button>
       </div>
-      <div class="topbar-title">
-        <h1>JUJUTSU<span>SHENANIGANS</span></h1>
-        <p class="subtitle">FAKE JS TEST BUILD</p>
+
+      <!-- Center: game title -->
+      <div class="jjs-topbar-center">
+        <div class="jjs-logo">JUJUTSU<span>SHENANIGANS</span></div>
+        <div class="jjs-build-tag">FAKE JS TEST BUILD</div>
       </div>
-      <div class="topbar-actions">
-        <button class="topbar-btn" id="btn-open-store" title="Store">🛒</button>
-        <button class="topbar-btn" id="btn-open-settings" title="Settings">⚙️</button>
+
+      <!-- Right nav buttons -->
+      <div class="jjs-nav-right">
+        <div class="jjs-currency">
+          <span class="robux-icon">R$</span>
+          <span id="robux-count">0</span>
+        </div>
+        <button class="jjs-nav-btn icon-only" id="btn-open-settings" title="Settings">⚙️</button>
+        <button class="jjs-nav-btn icon-only" id="btn-nav-inventory" title="Inventory">🎒</button>
+        <button class="jjs-nav-btn icon-only" id="btn-nav-ranked" title="Ranked">🏆</button>
       </div>
     </div>
 
-    <!-- Mode Toggle -->
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="mode-pvp"  data-mode="pvp">⚔️ PVP DUEL</button>
-      <button class="mode-btn"        id="mode-boss" data-mode="boss">👹 BOSS FIGHT</button>
-    </div>
+    <!-- ── Slide-down Dropdown Panel ── -->
+    <div id="char-dropdown" class="char-dropdown">
+      <div class="char-dropdown-inner">
 
-    <!-- Map Select -->
-    <div class="map-select-row" id="map-select-row">
-      <div class="map-card selected" data-map="shinjuku">
-        <span class="map-emoji">🏢</span>
-        <span class="map-label">Shinjuku Station</span>
-      </div>
-      <div class="map-card" data-map="shibuya">
-        <span class="map-emoji">🌆</span>
-        <span class="map-label">Shibuya Crossing</span>
-      </div>
-      <div class="map-card boss-map" data-map="domain">
-        <span class="map-emoji">⛩️</span>
-        <span class="map-label">Malevolent Shrine</span>
-      </div>
-    </div>
-
-    <!-- Character Filter Tabs -->
-    <div class="char-filter-tabs" id="char-filter-tabs">
-      <button class="char-tab active" data-filter="all">ALL</button>
-      <button class="char-tab"        data-filter="free">FREE</button>
-      <button class="char-tab"        data-filter="EA">EARLY ACCESS</button>
-      <button class="char-tab"        data-filter="OP">OVERPOWERED</button>
-    </div>
-
-    <!-- Select main area: grid + info panel -->
-    <div class="select-main">
-      <div class="char-grid" id="char-grid"></div>
-
-      <!-- Character info panel (right, shown when char selected) -->
-      <div class="char-info-panel" id="char-info-panel">
-        <div class="cip-placeholder">← Select a character</div>
-        <div class="cip-content hidden" id="cip-content">
-          <div class="cip-header">
-            <span class="cip-icon" id="cip-icon">👊</span>
-            <div class="cip-names">
-              <div class="cip-name" id="cip-name">VESSEL</div>
-              <div class="cip-sub"  id="cip-sub">Yuji Itadori</div>
-            </div>
-            <div class="cip-hp-pill" id="cip-hp">HP 250</div>
+        <!-- Panel header -->
+        <div class="cdp-header">
+          <span class="cdp-title">👤 CHARACTERS</span>
+          <div class="char-filter-tabs" id="char-filter-tabs">
+            <button class="char-tab active" data-filter="all">ALL</button>
+            <button class="char-tab"        data-filter="free">FREE</button>
+            <button class="char-tab"        data-filter="EA">EARLY ACCESS</button>
+            <button class="char-tab"        data-filter="OP">OVERPOWERED</button>
           </div>
-          <div class="cip-desc" id="cip-desc"></div>
-          <div class="cip-section-label">BASE MOVES</div>
-          <div class="cip-moves" id="cip-moves"></div>
-          <div class="cip-section-label">SPECIAL</div>
-          <div class="cip-special" id="cip-special"></div>
-          <div class="cip-section-label">AWAKENING</div>
-          <div class="cip-awaken" id="cip-awaken"></div>
+          <button class="cdp-close" id="btn-chars-close">✕</button>
+        </div>
+
+        <!-- Panel body: grid + info -->
+        <div class="cdp-body">
+          <div class="char-grid" id="char-grid"></div>
+
+          <!-- Character info panel -->
+          <div class="char-info-panel" id="char-info-panel">
+            <div class="cip-placeholder">← Select a character</div>
+            <div class="cip-content hidden" id="cip-content">
+              <div class="cip-header">
+                <span class="cip-icon" id="cip-icon">👊</span>
+                <div class="cip-names">
+                  <div class="cip-name" id="cip-name">VESSEL</div>
+                  <div class="cip-sub"  id="cip-sub">Yuji Itadori</div>
+                </div>
+                <div class="cip-hp-pill" id="cip-hp">HP 250</div>
+              </div>
+              <div class="cip-desc" id="cip-desc"></div>
+              <div class="cip-section-label">BASE MOVES</div>
+              <div class="cip-moves" id="cip-moves"></div>
+              <div class="cip-section-label">SPECIAL</div>
+              <div class="cip-special" id="cip-special"></div>
+              <div class="cip-section-label">AWAKENING</div>
+              <div class="cip-awaken" id="cip-awaken"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel footer: play button -->
+        <div class="cdp-footer">
+          <button class="btn-play" id="btn-play" disabled>SELECT A CHARACTER</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Lobby Area (visible behind / around the dropdown) ── -->
+    <div class="lobby-area">
+
+      <!-- Mode Toggle -->
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="mode-pvp"  data-mode="pvp">⚔️ PVP DUEL</button>
+        <button class="mode-btn"        id="mode-boss" data-mode="boss">👹 BOSS FIGHT</button>
+      </div>
+
+      <!-- Map Select -->
+      <div class="map-select-row" id="map-select-row">
+        <div class="map-card selected" data-map="shinjuku">
+          <span class="map-emoji">🏢</span>
+          <span class="map-label">Shinjuku Station</span>
+        </div>
+        <div class="map-card" data-map="shibuya">
+          <span class="map-emoji">🌆</span>
+          <span class="map-label">Shibuya Crossing</span>
+        </div>
+        <div class="map-card boss-map" data-map="domain">
+          <span class="map-emoji">⛩️</span>
+          <span class="map-label">Malevolent Shrine</span>
         </div>
       </div>
+
+      <!-- Boss roster (shown in boss mode) -->
+      <div class="boss-grid hidden" id="boss-preview">
+        <p class="boss-warning">You will fight a random boss from the Roulette roster:</p>
+        <div class="boss-roster" id="boss-roster"></div>
+      </div>
+
+      <!-- Selected character badge (lobby preview) -->
+      <div class="lobby-selected-char" id="lobby-selected-char">
+        <span id="lobby-char-icon">❓</span>
+        <span id="lobby-char-name">No character selected</span>
+      </div>
+
     </div>
 
-    <!-- Boss roster (shown in boss mode) -->
-    <div class="boss-grid hidden" id="boss-preview">
-      <p class="boss-warning">You will fight a random boss from the Roulette roster:</p>
-      <div class="boss-roster" id="boss-roster"></div>
-    </div>
-
-    <button class="btn-play" id="btn-play" disabled>SELECT A CHARACTER</button>
   </div>
 
   <!-- =====================================================
