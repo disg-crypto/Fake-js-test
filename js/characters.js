@@ -564,3 +564,124 @@ const CHARACTERS = [
     }
   }
 ];
+
+/* =============================================================
+   BOSSES — Roulette / Final Showdown style boss enemies
+   Each boss has phases (phase 0 = normal, phase 1 = enraged at 50% HP)
+   ============================================================= */
+const BOSSES = [
+  {
+    id: 'boss_sukuna',
+    name: 'RYOMEN SUKUNA',
+    subName: 'True King of Curses',
+    isBoss: true,
+    icon: '👹',
+    hp: 1200,
+    color: '#ff1744',
+    glowColor: '#ff000088',
+    scale: 1.4,
+    description: 'The undisputed King of Curses. Four arms. No mercy.',
+    phases: [
+      {
+        threshold: 1.0,
+        label: 'KING OF CURSES',
+        moves: [
+          { name: 'Cleave', key: '1', damage: 60, cooldown: 4, type: 'slash' },
+          { name: 'Dismantle', key: '2', damage: 80, cooldown: 6, type: 'slash' },
+          { name: 'Flame Arrow', key: '3', damage: 75, cooldown: 9, type: 'ranged' },
+          { name: 'Domain Slash', key: '4', damage: 95, cooldown: 14, type: 'aoe' }
+        ],
+        special: { name: 'Malevolent Shrine', damage: 160, cooldown: 30 }
+      },
+      {
+        threshold: 0.5,
+        label: 'TRUE FORM — ENRAGED',
+        enraged: true,
+        moves: [
+          { name: 'World Cleave', key: '1', damage: 90, cooldown: 3, type: 'slash' },
+          { name: 'Open', key: '2', damage: 120, cooldown: 5, type: 'aoe' },
+          { name: 'Cursed Flame', key: '3', damage: 100, cooldown: 7, type: 'ranged' },
+          { name: 'Twin Meteors', key: '4', damage: 140, cooldown: 12, type: 'slash' }
+        ],
+        special: { name: 'Unlimited Shrine', damage: 220, cooldown: 25 }
+      }
+    ]
+  },
+
+  {
+    id: 'boss_gojo',
+    name: 'UNLIMITED GOJO',
+    subName: 'The Honored One — Unsealed',
+    isBoss: true,
+    icon: '🌀',
+    hp: 1000,
+    color: '#00b0ff',
+    glowColor: '#00b0ff88',
+    scale: 1.3,
+    description: 'Infinity active at all times. The Strongest returns.',
+    phases: [
+      {
+        threshold: 1.0,
+        label: 'INFINITY ACTIVE',
+        moves: [
+          { name: 'Lapse Blue MAX', key: '1', damage: 65, cooldown: 5, type: 'ranged' },
+          { name: 'Reversal Red', key: '2', damage: 75, cooldown: 7, type: 'ranged' },
+          { name: 'Hollow Purple', key: '3', damage: 110, cooldown: 18, type: 'aoe' },
+          { name: 'Infinity Shield', key: '4', damage: 0, cooldown: 10, type: 'defense' }
+        ],
+        special: { name: 'Teleport Barrage', damage: 130, cooldown: 22 }
+      },
+      {
+        threshold: 0.5,
+        label: 'SIX EYES — UNLEASHED',
+        enraged: true,
+        moves: [
+          { name: 'Blue Singularity', key: '1', damage: 95, cooldown: 4, type: 'ranged' },
+          { name: 'Red Rocket', key: '2', damage: 105, cooldown: 6, type: 'ranged' },
+          { name: 'Purple Nova', key: '3', damage: 160, cooldown: 14, type: 'aoe' },
+          { name: 'Infinite Void', key: '4', damage: 40, cooldown: 8, type: 'aoe' }
+        ],
+        special: { name: 'Infinite Void Domain', damage: 200, cooldown: 20 }
+      }
+    ]
+  },
+
+  {
+    id: 'boss_mahoraga',
+    name: 'DIVINE GENERAL',
+    subName: 'Mahoraga — Eight-Handled Wheel',
+    isBoss: true,
+    icon: '⚙️',
+    hp: 900,
+    color: '#69db7c',
+    glowColor: '#00ff4488',
+    scale: 1.5,
+    description: 'Adapts to everything. Grows stronger with every hit.',
+    phases: [
+      {
+        threshold: 1.0,
+        label: 'ADAPTATION I',
+        moves: [
+          { name: 'Wheel Slash', key: '1', damage: 70, cooldown: 5, type: 'slash' },
+          { name: 'Adaptation Strike', key: '2', damage: 55, cooldown: 6, type: 'melee' },
+          { name: 'Demolish', key: '3', damage: 90, cooldown: 12, type: 'aoe' },
+          { name: 'Sumo Throw', key: '4', damage: 65, cooldown: 9, type: 'melee' }
+        ],
+        special: { name: 'Eight-Handled Wheel', damage: 150, cooldown: 28 }
+      },
+      {
+        threshold: 0.5,
+        label: 'ADAPTATION II — PERFECTED',
+        enraged: true,
+        damageResist: 0.35,
+        moves: [
+          { name: 'World Cutting Slash', key: '1', damage: 110, cooldown: 4, type: 'slash' },
+          { name: 'Counter Instinct', key: '2', damage: 80, cooldown: 5, type: 'counter' },
+          { name: 'Cataclysm', key: '3', damage: 130, cooldown: 10, type: 'aoe' },
+          { name: 'Inevitable End', key: '4', damage: 150, cooldown: 14, type: 'slash' }
+        ],
+        special: { name: 'Divine Demolition', damage: 210, cooldown: 22 }
+      }
+    ]
+  }
+];

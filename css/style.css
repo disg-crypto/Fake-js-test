@@ -380,3 +380,202 @@ html, body {
   50%  { transform: translateY(-30px) scale(1.1); opacity: 1; }
   100% { transform: translateY(-55px) scale(0.9); opacity: 0; }
 }
+
+/* ===== MODE TOGGLE ===== */
+.mode-toggle {
+  display: flex; gap: 10px;
+}
+
+.mode-btn {
+  background: var(--panel-bg);
+  border: 2px solid #7c4dff44;
+  border-radius: 10px;
+  color: #aaa;
+  font-size: 12px; font-weight: 700;
+  letter-spacing: 1px;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mode-btn.active {
+  border-color: var(--accent);
+  color: #fff;
+  background: rgba(124,77,255,0.2);
+}
+.mode-btn:hover:not(.active) { border-color: #7c4dff66; color: #ddd; }
+
+/* ===== MAP SELECT ===== */
+.map-select-row {
+  display: flex; gap: 10px;
+  width: 100%; max-width: 500px;
+}
+
+.map-card {
+  flex: 1;
+  background: var(--panel-bg);
+  border: 2px solid #7c4dff33;
+  border-radius: 10px;
+  padding: 10px 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.map-card:hover { border-color: #7c4dff66; }
+.map-card.selected { border-color: var(--accent); background: rgba(124,77,255,0.15); }
+.map-card.boss-map { border-color: #ff174433; }
+.map-card.boss-map.selected { border-color: var(--enemy-red); background: rgba(255,23,68,0.1); }
+
+.map-emoji { font-size: 22px; }
+.map-label { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: #ccc; }
+
+/* ===== BOSS PREVIEW ===== */
+.boss-grid { width: 100%; max-width: 500px; text-align: center; }
+.boss-warning {
+  font-size: 10px; letter-spacing: 1px; color: #ff7744;
+  margin-bottom: 8px;
+}
+.boss-roster {
+  display: flex; gap: 10px; justify-content: center;
+}
+.boss-card {
+  background: rgba(60,0,0,0.5);
+  border: 2px solid #ff174433;
+  border-radius: 10px;
+  padding: 10px 14px;
+  text-align: center;
+}
+.boss-card-icon { font-size: 28px; }
+.boss-card-name { font-size: 9px; font-weight: 700; color: #ff6666; letter-spacing: 1px; margin-top: 4px; }
+.boss-card-hp   { font-size: 8px; color: #ff4444; margin-top: 2px; }
+
+/* ===== BOSS HP BAR ===== */
+#boss-bar-section {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  padding: 8px 16px 10px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+  text-align: center;
+  pointer-events: none;
+  z-index: 20;
+}
+
+#boss-name-label {
+  font-size: 13px; font-weight: 900; letter-spacing: 3px;
+  color: #fff; text-shadow: 0 0 12px #ff1744;
+  margin-bottom: 2px;
+}
+
+#boss-phase-label {
+  font-size: 9px; letter-spacing: 2px; color: #ff6666;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+#boss-bar-wrap {
+  position: relative;
+  height: 14px;
+  background: #1a0000;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid #ff174444;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+#boss-hp-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ff1744, #ff6d00);
+  border-radius: 7px;
+  width: 100%;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+#boss-hp-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.15) 0%, transparent 60%);
+  border-radius: 7px;
+}
+
+#boss-phase-marker {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: #fff;
+  opacity: 0.5;
+}
+
+#boss-hp-text {
+  font-size: 9px; color: #ff8888; letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* ===== PHASE BANNER ===== */
+#phase-banner {
+  position: absolute;
+  top: 40%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(20px, 5vw, 40px);
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #ff1744;
+  text-shadow: 0 0 30px #ff1744, 0 0 60px #ff000088;
+  animation: phase-pop 3s forwards;
+  pointer-events: none;
+  z-index: 55;
+  text-align: center;
+}
+
+@keyframes phase-pop {
+  0%   { transform: translate(-50%,-50%) scale(0.4); opacity: 0; }
+  15%  { transform: translate(-50%,-50%) scale(1.15); opacity: 1; }
+  30%  { transform: translate(-50%,-50%) scale(1.0);  opacity: 1; }
+  75%  { transform: translate(-50%,-50%) scale(1.0);  opacity: 1; }
+  100% { transform: translate(-50%,-50%) scale(0.95); opacity: 0; }
+}
+
+/* ===== ENRAGE FLASH ===== */
+#enrage-flash {
+  position: absolute; inset: 0;
+  background: rgba(200,0,0,0.25);
+  pointer-events: none;
+  z-index: 40;
+  animation: enrage-fade 1.2s forwards;
+}
+
+@keyframes enrage-fade {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ===== MAP TOAST ===== */
+#map-toast {
+  position: absolute;
+  top: 80px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  border: 1px solid #7c4dff55;
+  border-radius: 8px;
+  padding: 6px 18px;
+  font-size: 11px; letter-spacing: 2px; color: #ccc;
+  pointer-events: none;
+  z-index: 30;
+  animation: toast-fade 2.5s forwards;
+}
+
+@keyframes toast-fade {
+  0%   { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ===== RESULT SUB TEXT ===== */
+#result-sub {
+  font-size: 13px; letter-spacing: 2px; color: #aaa;
+  margin-top: -8px;
+}

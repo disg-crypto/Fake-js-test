@@ -8,23 +8,65 @@
 </head>
 <body>
 
-  <!-- Character Select Screen -->
+  <!-- ===== CHARACTER SELECT SCREEN ===== -->
   <div id="screen-select" class="screen active">
     <div class="title-logo">
       <h1>JUJUTSU<br><span>SHENANIGANS</span></h1>
       <p class="subtitle">FAKE JS TEST BUILD</p>
     </div>
+
+    <!-- Mode Toggle -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="mode-pvp"  data-mode="pvp">⚔️ PVP DUEL</button>
+      <button class="mode-btn"        id="mode-boss" data-mode="boss">👹 BOSS FIGHT</button>
+    </div>
+
+    <!-- Map Select -->
+    <div class="map-select-row" id="map-select-row">
+      <div class="map-card selected" data-map="shinjuku">
+        <span class="map-emoji">🏢</span>
+        <span class="map-label">Shinjuku Station</span>
+      </div>
+      <div class="map-card" data-map="shibuya">
+        <span class="map-emoji">🌆</span>
+        <span class="map-label">Shibuya Crossing</span>
+      </div>
+      <div class="map-card boss-map" data-map="domain">
+        <span class="map-emoji">⛩️</span>
+        <span class="map-label">Malevolent Shrine</span>
+      </div>
+    </div>
+
+    <!-- Character Grid -->
     <div class="char-grid" id="char-grid"></div>
+
+    <!-- Boss roster (shown in boss mode) -->
+    <div class="boss-grid hidden" id="boss-preview">
+      <p class="boss-warning">You will fight a random boss from the Roulette roster:</p>
+      <div class="boss-roster" id="boss-roster"></div>
+    </div>
+
     <button class="btn-play" id="btn-play" disabled>SELECT A CHARACTER</button>
   </div>
 
-  <!-- Game Screen -->
+  <!-- ===== GAME SCREEN ===== -->
   <div id="screen-game" class="screen">
     <canvas id="game-canvas"></canvas>
 
-    <!-- HUD -->
     <div id="hud">
-      <!-- Player Info -->
+
+      <!-- BOSS HP BAR (shown only in boss mode) -->
+      <div id="boss-bar-section" class="hidden">
+        <div id="boss-name-label">RYOMEN SUKUNA</div>
+        <div id="boss-phase-label">KING OF CURSES</div>
+        <div id="boss-bar-wrap">
+          <div id="boss-hp-bar"></div>
+          <div id="boss-phase-marker"></div>
+        </div>
+        <div id="boss-hp-text">1200 / 1200</div>
+      </div>
+
+      <!-- Player Info (bottom-left) -->
       <div class="hud-player" id="hud-player">
         <div class="hud-name" id="player-name-label">VESSEL</div>
         <div class="hp-bar-wrap">
@@ -37,7 +79,7 @@
         <div class="ult-label">ULTIMATE</div>
       </div>
 
-      <!-- Enemy Info -->
+      <!-- Enemy Info (top-right, PVP only) -->
       <div class="hud-enemy" id="hud-enemy">
         <div class="hud-name" id="enemy-name-label">HONORED ONE</div>
         <div class="hp-bar-wrap">
@@ -71,8 +113,15 @@
       <!-- Combat Log -->
       <div id="combat-log"></div>
 
-      <!-- Awakening Banner -->
+      <!-- Awakening / Phase Banner -->
       <div id="awaken-banner" class="hidden">AWAKENING!</div>
+      <div id="phase-banner" class="hidden"></div>
+
+      <!-- Enrage screen flash overlay -->
+      <div id="enrage-flash" class="hidden"></div>
+
+      <!-- Map Name Toast -->
+      <div id="map-toast" class="hidden"></div>
 
       <!-- Mobile Touch Controls -->
       <div id="touch-controls">
@@ -89,20 +138,22 @@
         </div>
         <div class="touch-row">
           <button class="touch-btn special" id="t-r">SPECIAL (R)</button>
-          <button class="touch-btn awaken" id="t-e">AWAKEN (E)</button>
+          <button class="touch-btn awaken"  id="t-e">AWAKEN (E)</button>
         </div>
       </div>
     </div>
 
-    <!-- Game Over / Victory overlay -->
+    <!-- Result overlay -->
     <div id="result-overlay" class="hidden">
       <div id="result-text"></div>
+      <div id="result-sub"></div>
       <button class="btn-play" id="btn-rematch">REMATCH</button>
       <button class="btn-play secondary" id="btn-back">BACK TO SELECT</button>
     </div>
   </div>
 
   <script src="js/characters.js"></script>
+  <script src="js/map.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>
