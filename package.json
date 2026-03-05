@@ -1,0 +1,23 @@
+{
+  "name": "jujutsu-shenanigans-fake-apk",
+  "version": "1.0.0",
+  "description": "Fake JS Test — Jujutsu Shenanigans mock APK (based on Roblox game by Tze)",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . -p 3000",
+    "build": "echo 'Static build — no bundler needed'",
+    "android": "npx cap add android && npx cap sync android && npx cap open android",
+    "sync": "npx cap sync",
+    "lint": "npx eslint js/*.js"
+  },
+  "keywords": ["roblox", "jujutsu", "shenanigans", "game", "apk", "test"],
+  "license": "MIT",
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "serve": "^14.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  }
+}
