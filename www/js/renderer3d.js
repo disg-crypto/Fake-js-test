@@ -92,7 +92,10 @@ const Renderer3D = (() => {
     scene = new THREE.Scene();
     clock = new THREE.Clock();
 
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const w = containerEl.clientWidth || window.innerWidth;
+    const h = containerEl.clientHeight || window.innerHeight;
+
+    camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
     camera.position.set(0, 1.5, 8);
     camera.lookAt(0, 1.2, 0);
 
@@ -101,7 +104,7 @@ const Renderer3D = (() => {
       antialias: true,
       powerPreference: 'high-performance'
     });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
