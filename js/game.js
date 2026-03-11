@@ -300,6 +300,18 @@ function startGame() {
   AI.reset(state.gameMode === 'boss');
   setupInput();
   lastTime = 0;
+
+  // ── Init 3D renderer and create rigged models ──
+  if (typeof Renderer3D !== 'undefined') {
+    const gameContainer = DOM.screenGame;
+    if (!Renderer3D.initialized) {
+      Renderer3D.init(gameContainer);
+    }
+    Renderer3D.cleanup(); // remove previous fighters
+    Renderer3D.createFighter('player', playerDef);
+    Renderer3D.createFighter('enemy', enemyDef);
+  }
+
   state.frame = requestAnimationFrame(tick);
 }
 
@@ -768,6 +780,13 @@ function render() {
 
   // 6. Screen-space VFX (flash overlays — no shake)
   VFX.renderScreen(ctx, W, H);
+
+  // 7. 3D overlay — update and render rigged models
+  if (typeof Renderer3D !== 'undefined' && Renderer3D.initialized) {
+    const dt = state._lastDt || 0.016;
+    Renderer3D.update(dt, state.player, state.enemy);
+    Renderer3D.render();
+  }
 }
 
 function drawFighter(f) {
@@ -900,6 +919,7 @@ function tick(ts = 0) {
   const dt = Math.min((ts - lastTime) / 1000, 0.05);
   lastTime = ts;
   state.time += dt;
+  state._lastDt = dt;
 
   updateFighter(state.player, dt);
   updateFighter(state.enemy,  dt);
@@ -1034,6 +1054,7 @@ DOM.btnRematch.addEventListener('click', () => {
 DOM.btnBack.addEventListener('click', () => {
   cancelAnimationFrame(state.frame);
   state.running = false;
+  if (typeof Renderer3D !== 'undefined') Renderer3D.cleanup();
   DOM.screenGame.classList.remove('active');
   DOM.screenSelect.classList.add('active');
   DOM.btnPlay.disabled = false;
@@ -1049,6 +1070,7 @@ function resizeCanvas() {
 
 window.addEventListener('resize', () => {
   resizeCanvas();
+  if (typeof Renderer3D !== 'undefined' && Renderer3D.initialized) Renderer3D.resize();
   if (state.player) {
     state.platforms = getPlatforms(DOM.canvas.width, DOM.canvas.height);
     const gnd = GROUND();
