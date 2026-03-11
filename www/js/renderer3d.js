@@ -1923,6 +1923,542 @@ const Renderer3D = (() => {
     }
   }
 
+  /* =========================================================
+     3D MAP SYSTEM
+     Creates full 3D environments for each arena.
+     ========================================================= */
+  let mapGroup = null;
+  let mapLights = [];
+  let mapAnimObjects = [];
+
+  function clearMap() {
+    if (mapGroup) {
+      scene.remove(mapGroup);
+      mapGroup.traverse(child => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+          else child.material.dispose();
+        }
+      });
+    }
+    mapLights.forEach(l => scene.remove(l));
+    mapLights = [];
+    mapAnimObjects = [];
+    mapGroup = new THREE.Group();
+    scene.add(mapGroup);
+  }
+
+  function createMap(mapId, platforms) {
+    clearMap();
+
+    // Convert 2D platform data to 3D positions
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const gndY = H - 100;
+
+    switch (mapId) {
+      case 'shinjuku': createShinjukuMap(W, H, gndY, platforms); break;
+      case 'shibuya':  createShibuyaMap(W, H, gndY, platforms);  break;
+      case 'domain':   createDomainMap(W, H, gndY, platforms);   break;
+      default:         createShinjukuMap(W, H, gndY, platforms);  break;
+    }
+
+    // Add 3D platforms
+    if (platforms) {
+      platforms.forEach(plat => {
+        const px = ((plat.x + plat.w / 2) / W - 0.5) * 8;
+        const py = Math.max(0, (gndY - plat.y) / (H * 0.5)) * 2;
+        const pw = (plat.w / W) * 8;
+        const platGeo = new THREE.BoxGeometry(pw, 0.08, 1.2);
+        const platMat = new THREE.MeshStandardMaterial({
+          color: mapId === 'domain' ? 0x440000 : mapId === 'shibuya' ? 0x2a2a3e : 0x334455,
+          roughness: 0.6,
+          metalness: 0.3,
+          emissive: mapId === 'domain' ? 0x330000 : 0x111122,
+          emissiveIntensity: 0.3
+        });
+        const platMesh = new THREE.Mesh(platGeo, platMat);
+        platMesh.position.set(px, py - 0.04, 0);
+        platMesh.castShadow = true;
+        platMesh.receiveShadow = true;
+        mapGroup.add(platMesh);
+
+        // Platform edge glow
+        const edgeGeo = new THREE.BoxGeometry(pw + 0.05, 0.02, 1.25);
+        const edgeMat = new THREE.MeshBasicMaterial({
+          color: mapId === 'domain' ? 0xff2200 : 0x4488ff,
+          transparent: true,
+          opacity: 0.5
+        });
+        const edge = new THREE.Mesh(edgeGeo, edgeMat);
+        edge.position.set(px, py, 0);
+        mapGroup.add(edge);
+      });
+    }
+  }
+
+  function createShinjukuMap(W, H, gndY, platforms) {
+    // Sky — dark blue gradient via background
+    scene.background = new THREE.Color(0x0a0a1a);
+    scene.fog = new THREE.Fog(0x0a0a2a, 15, 40);
+
+    // Ground
+    const groundGeo = new THREE.PlaneGeometry(20, 8);
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x1a1a2e,
+      roughness: 0.8,
+      metalness: 0.2,
+      emissive: 0x0a0a1a,
+      emissiveIntensity: 0.2
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.01;
+    ground.receiveShadow = true;
+    mapGroup.add(ground);
+
+    // Moon
+    const moonGeo = new THREE.SphereGeometry(0.5, 16, 16);
+    const moonMat = new THREE.MeshBasicMaterial({ color: 0xffffee });
+    const moon = new THREE.Mesh(moonGeo, moonMat);
+    moon.position.set(3, 7, -15);
+    mapGroup.add(moon);
+    const moonLight = new THREE.PointLight(0xeeeeff, 0.4, 30);
+    moonLight.position.copy(moon.position);
+    scene.add(moonLight);
+    mapLights.push(moonLight);
+
+    // City buildings (background)
+    for (let i = 0; i < 12; i++) {
+      const bw = 0.6 + Math.random() * 1.2;
+      const bh = 2 + Math.random() * 5;
+      const bx = -8 + i * 1.5 + (Math.random() - 0.5);
+      const bz = -6 - Math.random() * 8;
+      const buildGeo = new THREE.BoxGeometry(bw, bh, bw * 0.8);
+      const buildMat = new THREE.MeshStandardMaterial({
+        color: 0x1a1a2e,
+        roughness: 0.9,
+        emissive: 0x0a0a1a,
+        emissiveIntensity: 0.1
+      });
+      const building = new THREE.Mesh(buildGeo, buildMat);
+      building.position.set(bx, bh / 2, bz);
+      building.castShadow = true;
+      mapGroup.add(building);
+
+      // Window lights (random emissive planes)
+      const winCount = Math.floor(bh * 2);
+      for (let w = 0; w < winCount; w++) {
+        if (Math.random() > 0.4) continue;
+        const winGeo = new THREE.PlaneGeometry(0.08, 0.06);
+        const winColor = Math.random() > 0.5 ? 0xffcc44 : 0x88aaff;
+        const winMat = new THREE.MeshBasicMaterial({ color: winColor });
+        const win = new THREE.Mesh(winGeo, winMat);
+        win.position.set(
+          bx + (Math.random() - 0.5) * (bw * 0.7),
+          0.5 + w * 0.4 + Math.random() * 0.2,
+          bz + bw * 0.41
+        );
+        mapGroup.add(win);
+      }
+    }
+
+    // Station roof overhang
+    const roofGeo = new THREE.BoxGeometry(10, 0.15, 3);
+    const roofMat = new THREE.MeshStandardMaterial({
+      color: 0x2a2a3e,
+      roughness: 0.7,
+      metalness: 0.3
+    });
+    const roof = new THREE.Mesh(roofGeo, roofMat);
+    roof.position.set(0, 4.5, -1);
+    roof.castShadow = true;
+    mapGroup.add(roof);
+
+    // Neon accent lights
+    const neonColors = [0xff0066, 0x00ffcc, 0xff6600, 0x4488ff];
+    neonColors.forEach((c, i) => {
+      const nl = new THREE.PointLight(c, 0.3, 6);
+      nl.position.set(-3 + i * 2, 2.5, 1);
+      scene.add(nl);
+      mapLights.push(nl);
+    });
+
+    // Stars (small emissive spheres)
+    for (let i = 0; i < 40; i++) {
+      const starGeo = new THREE.SphereGeometry(0.02 + Math.random() * 0.02, 4, 4);
+      const starMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const star = new THREE.Mesh(starGeo, starMat);
+      star.position.set(
+        (Math.random() - 0.5) * 20,
+        4 + Math.random() * 6,
+        -10 - Math.random() * 10
+      );
+      mapGroup.add(star);
+      mapAnimObjects.push({ mesh: star, type: 'twinkle', phase: Math.random() * Math.PI * 2 });
+    }
+  }
+
+  function createShibuyaMap(W, H, gndY, platforms) {
+    scene.background = new THREE.Color(0x1a0a0a);
+    scene.fog = new THREE.FogExp2(0x1a0a0a, 0.06);
+
+    // Ground with cracks
+    const groundGeo = new THREE.PlaneGeometry(20, 8, 20, 10);
+    // Deform ground for cracked look
+    const gPos = groundGeo.attributes.position;
+    for (let i = 0; i < gPos.count; i++) {
+      gPos.setZ(i, (Math.random() - 0.5) * 0.05);
+    }
+    groundGeo.computeVertexNormals();
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x2a2a2a,
+      roughness: 0.9,
+      metalness: 0.1,
+      emissive: 0x1a0a0a,
+      emissiveIntensity: 0.15
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.01;
+    ground.receiveShadow = true;
+    mapGroup.add(ground);
+
+    // Red cursed energy sky glow
+    const skyGlow = new THREE.PointLight(0xff2200, 0.8, 25);
+    skyGlow.position.set(0, 8, -5);
+    scene.add(skyGlow);
+    mapLights.push(skyGlow);
+
+    // Buildings (corrupted aesthetic)
+    for (let i = 0; i < 10; i++) {
+      const bw = 0.8 + Math.random() * 1.5;
+      const bh = 2 + Math.random() * 4;
+      const bx = -7 + i * 1.6 + (Math.random() - 0.5);
+      const bz = -5 - Math.random() * 6;
+      const buildGeo = new THREE.BoxGeometry(bw, bh, bw * 0.7);
+      const tilt = (Math.random() - 0.5) * 0.05;
+      const buildMat = new THREE.MeshStandardMaterial({
+        color: 0x1a1a2a,
+        roughness: 0.85,
+        emissive: 0x220000,
+        emissiveIntensity: 0.15
+      });
+      const building = new THREE.Mesh(buildGeo, buildMat);
+      building.position.set(bx, bh / 2, bz);
+      building.rotation.z = tilt;
+      building.castShadow = true;
+      mapGroup.add(building);
+    }
+
+    // Neon signs (red/purple)
+    const shibuyaNeons = [0xff0044, 0xcc00ff, 0xff4400, 0xff0066];
+    shibuyaNeons.forEach((c, i) => {
+      const nl = new THREE.PointLight(c, 0.4, 5);
+      nl.position.set(-3 + i * 2, 2, 0.5);
+      scene.add(nl);
+      mapLights.push(nl);
+
+      // Neon sign plane
+      const signGeo = new THREE.PlaneGeometry(0.6, 0.2);
+      const signMat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.8 });
+      const sign = new THREE.Mesh(signGeo, signMat);
+      sign.position.set(-3 + i * 2, 3, -3);
+      mapGroup.add(sign);
+    });
+
+    // Floating cursed energy wisps
+    for (let i = 0; i < 15; i++) {
+      const wispGeo = new THREE.SphereGeometry(0.04 + Math.random() * 0.06, 6, 6);
+      const wispMat = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.6 });
+      const wisp = new THREE.Mesh(wispGeo, wispMat);
+      wisp.position.set(
+        (Math.random() - 0.5) * 10,
+        0.5 + Math.random() * 4,
+        (Math.random() - 0.5) * 4
+      );
+      mapGroup.add(wisp);
+      mapAnimObjects.push({ mesh: wisp, type: 'float', phase: Math.random() * Math.PI * 2, speed: 0.5 + Math.random() });
+    }
+  }
+
+  function createDomainMap(W, H, gndY, platforms) {
+    scene.background = new THREE.Color(0x050005);
+    scene.fog = new THREE.FogExp2(0x0a0005, 0.04);
+
+    // Ground — void with grid lines
+    const groundGeo = new THREE.PlaneGeometry(24, 12, 48, 24);
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0005,
+      roughness: 0.95,
+      metalness: 0.0,
+      emissive: 0x110000,
+      emissiveIntensity: 0.1,
+      wireframe: false
+    });
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.01;
+    ground.receiveShadow = true;
+    mapGroup.add(ground);
+
+    // Grid lines
+    const gridGeo = new THREE.PlaneGeometry(24, 12, 48, 24);
+    const gridMat = new THREE.MeshBasicMaterial({
+      color: 0x440000,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.3
+    });
+    const grid = new THREE.Mesh(gridGeo, gridMat);
+    grid.rotation.x = -Math.PI / 2;
+    grid.position.y = 0.01;
+    mapGroup.add(grid);
+
+    // Central red pulse light
+    const centerLight = new THREE.PointLight(0xff0000, 1.5, 12);
+    centerLight.position.set(0, 0.3, 0);
+    scene.add(centerLight);
+    mapLights.push(centerLight);
+    mapAnimObjects.push({ light: centerLight, type: 'pulse', phase: 0 });
+
+    // Torii gate
+    const toriiMat = new THREE.MeshStandardMaterial({
+      color: 0x880000,
+      roughness: 0.5,
+      metalness: 0.3,
+      emissive: 0x440000,
+      emissiveIntensity: 0.4
+    });
+    // Pillars
+    const pillarGeo = new THREE.CylinderGeometry(0.08, 0.1, 3, 8);
+    const lPillar = new THREE.Mesh(pillarGeo, toriiMat);
+    lPillar.position.set(-1, 1.5, -4);
+    mapGroup.add(lPillar);
+    const rPillar = new THREE.Mesh(pillarGeo.clone(), toriiMat);
+    rPillar.position.set(1, 1.5, -4);
+    mapGroup.add(rPillar);
+    // Top beam
+    const beamGeo = new THREE.BoxGeometry(2.8, 0.12, 0.15);
+    const beam = new THREE.Mesh(beamGeo, toriiMat);
+    beam.position.set(0, 3.1, -4);
+    mapGroup.add(beam);
+    // Second beam
+    const beam2Geo = new THREE.BoxGeometry(2.4, 0.08, 0.12);
+    const beam2 = new THREE.Mesh(beam2Geo, toriiMat);
+    beam2.position.set(0, 2.7, -4);
+    mapGroup.add(beam2);
+
+    // Floating slash marks
+    for (let i = 0; i < 20; i++) {
+      const slashGeo = new THREE.PlaneGeometry(0.3 + Math.random() * 0.4, 0.02);
+      const slashMat = new THREE.MeshBasicMaterial({
+        color: 0xff2200,
+        transparent: true,
+        opacity: 0.4 + Math.random() * 0.3,
+        side: THREE.DoubleSide
+      });
+      const slash = new THREE.Mesh(slashGeo, slashMat);
+      slash.position.set(
+        (Math.random() - 0.5) * 10,
+        0.5 + Math.random() * 5,
+        (Math.random() - 0.5) * 6
+      );
+      slash.rotation.z = (Math.random() - 0.5) * 1.5;
+      slash.rotation.y = Math.random() * Math.PI;
+      mapGroup.add(slash);
+      mapAnimObjects.push({ mesh: slash, type: 'flicker', phase: Math.random() * Math.PI * 2 });
+    }
+
+    // Floating debris
+    for (let i = 0; i < 12; i++) {
+      const debrisGeo = new THREE.TetrahedronGeometry(0.05 + Math.random() * 0.08, 0);
+      const debrisMat = new THREE.MeshStandardMaterial({
+        color: 0x2a0a0a,
+        roughness: 0.8,
+        emissive: 0x220000,
+        emissiveIntensity: 0.2
+      });
+      const debris = new THREE.Mesh(debrisGeo, debrisMat);
+      debris.position.set(
+        (Math.random() - 0.5) * 8,
+        0.5 + Math.random() * 3,
+        (Math.random() - 0.5) * 4
+      );
+      mapGroup.add(debris);
+      mapAnimObjects.push({ mesh: debris, type: 'orbit', phase: Math.random() * Math.PI * 2, radius: 0.3 + Math.random() * 0.5 });
+    }
+  }
+
+  /* =========================================================
+     3D VFX SYSTEM
+     Spawns and manages 3D particle effects.
+     ========================================================= */
+  const vfx3d = [];
+  const MAX_VFX = 80;
+
+  // Reusable geometries
+  const vfxSphereGeo = new THREE.SphereGeometry(1, 6, 6);
+  const vfxPlaneGeo = new THREE.PlaneGeometry(1, 1);
+  const vfxRingGeo = new THREE.RingGeometry(0.8, 1, 16);
+
+  function spawnVFX3D(type, x3d, y3d, z3d, color, options = {}) {
+    if (!initialized || vfx3d.length >= MAX_VFX) return;
+
+    const c = new THREE.Color(color);
+    let mesh;
+
+    switch (type) {
+      case 'burst': {
+        const count = options.count || 6;
+        for (let i = 0; i < count; i++) {
+          const size = 0.03 + Math.random() * 0.05;
+          const mat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.9 });
+          const m = new THREE.Mesh(vfxSphereGeo, mat);
+          m.scale.setScalar(size);
+          m.position.set(x3d, y3d, z3d);
+          scene.add(m);
+          vfx3d.push({
+            mesh: m,
+            vx: (Math.random() - 0.5) * 3,
+            vy: Math.random() * 2 + 1,
+            vz: (Math.random() - 0.5) * 1.5,
+            life: 0.5 + Math.random() * 0.3,
+            maxLife: 0.8,
+            shrink: true
+          });
+        }
+        return;
+      }
+      case 'ring': {
+        const mat = new THREE.MeshBasicMaterial({
+          color: c,
+          transparent: true,
+          opacity: 0.7,
+          side: THREE.DoubleSide
+        });
+        mesh = new THREE.Mesh(vfxRingGeo, mat);
+        mesh.scale.setScalar(options.radius || 0.1);
+        mesh.position.set(x3d, y3d, z3d);
+        mesh.rotation.x = -Math.PI / 2;
+        scene.add(mesh);
+        vfx3d.push({
+          mesh,
+          life: 0.6,
+          maxLife: 0.6,
+          expand: options.expandRate || 3,
+          shrink: false
+        });
+        return;
+      }
+      case 'slash': {
+        const slashMat = new THREE.MeshBasicMaterial({
+          color: c,
+          transparent: true,
+          opacity: 0.8,
+          side: THREE.DoubleSide
+        });
+        mesh = new THREE.Mesh(vfxPlaneGeo, slashMat);
+        mesh.scale.set(options.width || 0.8, 0.04, 1);
+        mesh.position.set(x3d, y3d, z3d);
+        mesh.rotation.z = options.angle || (Math.random() - 0.5) * 1.5;
+        scene.add(mesh);
+        vfx3d.push({
+          mesh,
+          life: 0.35,
+          maxLife: 0.35,
+          shrink: false
+        });
+        return;
+      }
+      case 'flash': {
+        const flashMat = new THREE.MeshBasicMaterial({
+          color: c,
+          transparent: true,
+          opacity: 0.9
+        });
+        mesh = new THREE.Mesh(vfxSphereGeo, flashMat);
+        mesh.scale.setScalar(options.radius || 0.3);
+        mesh.position.set(x3d, y3d, z3d);
+        scene.add(mesh);
+        vfx3d.push({
+          mesh,
+          life: 0.2,
+          maxLife: 0.2,
+          expand: 4,
+          shrink: false
+        });
+        return;
+      }
+    }
+  }
+
+  function updateVFX3D(dt) {
+    for (let i = vfx3d.length - 1; i >= 0; i--) {
+      const v = vfx3d[i];
+      v.life -= dt;
+
+      if (v.life <= 0) {
+        scene.remove(v.mesh);
+        if (v.mesh.material) v.mesh.material.dispose();
+        vfx3d.splice(i, 1);
+        continue;
+      }
+
+      const t = 1 - v.life / v.maxLife;
+
+      // Fade out
+      if (v.mesh.material.opacity !== undefined) {
+        v.mesh.material.opacity = Math.max(0, 1 - t);
+      }
+
+      // Movement
+      if (v.vx !== undefined) {
+        v.mesh.position.x += v.vx * dt;
+        v.mesh.position.y += v.vy * dt;
+        v.mesh.position.z += v.vz * dt;
+        v.vy -= 4 * dt; // gravity
+      }
+
+      // Expand
+      if (v.expand) {
+        const s = v.mesh.scale.x + v.expand * dt;
+        v.mesh.scale.setScalar(s);
+      }
+
+      // Shrink
+      if (v.shrink) {
+        const s = v.mesh.scale.x * (1 - dt * 2);
+        v.mesh.scale.setScalar(Math.max(0.001, s));
+      }
+    }
+  }
+
+  // Convert 2D coordinates to 3D
+  function to3D(x2d, y2d) {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const gndY = H - 100;
+    return {
+      x: ((x2d / W) - 0.5) * 8,
+      y: Math.max(0, (gndY - y2d) / (H * 0.5)) * 2
+    };
+  }
+
+  /* =========================================================
+     CAMERA SHAKE
+     ========================================================= */
+  let cameraShake = { intensity: 0, decay: 8 };
+  const cameraBasePos = { x: 0, y: 1.5, z: 8 };
+
+  function triggerShake(intensity) {
+    cameraShake.intensity = Math.min(cameraShake.intensity + intensity, 0.3);
+  }
+
+  /* =========================================================
+     UPDATED UPDATE + RENDER
+     ========================================================= */
   function update(dt, playerFighter, enemyFighter) {
     if (!initialized) return;
 
@@ -1933,11 +2469,60 @@ const Renderer3D = (() => {
       updateBones(model, dt);
     }
 
-    // Camera follows action
+    // Update 3D VFX
+    updateVFX3D(dt);
+
+    // Animate map objects
+    const t = performance.now() / 1000;
+    mapAnimObjects.forEach(obj => {
+      if (obj.type === 'twinkle' && obj.mesh) {
+        obj.mesh.material.opacity = 0.3 + 0.7 * Math.abs(Math.sin(t * 2 + obj.phase));
+        obj.mesh.material.transparent = true;
+      }
+      if (obj.type === 'float' && obj.mesh) {
+        obj.mesh.position.y += Math.sin(t * (obj.speed || 1) + obj.phase) * 0.003;
+        obj.mesh.position.x += Math.sin(t * 0.3 + obj.phase) * 0.002;
+      }
+      if (obj.type === 'pulse' && obj.light) {
+        obj.light.intensity = 1.0 + 0.8 * Math.sin(t * 2 + obj.phase);
+      }
+      if (obj.type === 'flicker' && obj.mesh) {
+        obj.mesh.material.opacity = 0.2 + 0.4 * Math.abs(Math.sin(t * 3 + obj.phase));
+      }
+      if (obj.type === 'orbit' && obj.mesh) {
+        const ox = obj.mesh.position.x;
+        const oy = obj.mesh.position.y;
+        obj.mesh.position.y = oy + Math.sin(t + obj.phase) * 0.002;
+        obj.mesh.rotation.x += dt * 0.5;
+        obj.mesh.rotation.z += dt * 0.3;
+      }
+    });
+
+    // Dynamic camera — follow fighters with zoom
     if (playerFighter && enemyFighter) {
       const W = window.innerWidth;
       const midX = ((playerFighter.x + enemyFighter.x) / 2 / W - 0.5) * 8;
-      camera.position.x += (midX - camera.position.x) * 0.05;
+      const midY = 1.2;
+      const dist = Math.abs(playerFighter.x - enemyFighter.x) / W * 8;
+      const targetZ = Math.max(5, Math.min(10, dist * 1.5 + 4));
+
+      camera.position.x += (midX - camera.position.x) * 0.06;
+      camera.position.y += (midY - camera.position.y) * 0.04;
+      cameraBasePos.z += (targetZ - cameraBasePos.z) * 0.03;
+
+      // Apply shake
+      if (cameraShake.intensity > 0.001) {
+        const sx = (Math.random() - 0.5) * cameraShake.intensity;
+        const sy = (Math.random() - 0.5) * cameraShake.intensity;
+        camera.position.z = cameraBasePos.z + sx * 0.5;
+        camera.position.x += sx;
+        camera.position.y += sy;
+        cameraShake.intensity *= Math.max(0, 1 - cameraShake.decay * dt);
+      } else {
+        camera.position.z += (cameraBasePos.z - camera.position.z) * 0.1;
+      }
+
+      camera.lookAt(camera.position.x, 1.0, 0);
     }
   }
 
@@ -1958,16 +2543,21 @@ const Renderer3D = (() => {
   function cleanup() {
     removeFighter('player');
     removeFighter('enemy');
+    clearMap();
   }
 
   return {
     init,
     createFighter,
     removeFighter,
+    createMap,
     update,
     render: render3D,
     resize,
     cleanup,
+    spawnVFX3D,
+    triggerShake,
+    to3D,
     get initialized() { return initialized; }
   };
 
