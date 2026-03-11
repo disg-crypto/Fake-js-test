@@ -537,9 +537,10 @@ function doM1(attacker, defender) {
     return;
   }
 
-  // Combo scaling: hits 1-2 = 3 dmg, hits 3-4 = 4 dmg; bosses deal more
-  const baseDmg = attacker.m1Combo < 2 ? 3 : 4;
-  const hitDmg  = attacker.isBoss ? baseDmg * 4 : baseDmg;
+  // Combo scaling: hits 1=6, 2=7, 3=8, 4=9; bosses deal 3x
+  const comboDmg = [6, 7, 8, 9];
+  const baseDmg = comboDmg[attacker.m1Combo];
+  const hitDmg  = attacker.isBoss ? baseDmg * 3 : baseDmg;
   const dmg     = defender.takeDamage(hitDmg);
 
   attacker.addUlt(hitDmg * 0.2);
@@ -723,7 +724,7 @@ function updateAI(dt) {
   AI.thinkTimer -= dt;
 
   const dist = Math.abs(e.x - p.x);
-  const speed = AI.isBoss ? 70 : 85;
+  const speed = AI.isBoss ? 90 : 100;
 
   // Move toward player
   if (dist > (AI.isBoss ? 130 : 90)) {
@@ -734,8 +735,8 @@ function updateAI(dt) {
   if (AI.thinkTimer > 0) return;
   // Boss thinks faster
   AI.thinkTimer = AI.isBoss
-    ? (0.3 + Math.random() * 0.4)
-    : (0.5 + Math.random() * 0.8);
+    ? (0.2 + Math.random() * 0.15)
+    : (0.35 + Math.random() * 0.25);
 
   if (e.stunTimer > 0) return;
 
@@ -750,18 +751,33 @@ function updateAI(dt) {
   }
 
   const closeRange = dist < (AI.isBoss ? 160 : 120);
+  const midRange = dist < (AI.isBoss ? 280 : 220);
+
+  // Mid-range: try ranged moves
+  if (!closeRange && midRange) {
+    const avail = e.cooldowns.map((cd, i) => cd <= 0 ? i : -1).filter(i => i >= 0);
+    const rangedMoves = avail.filter(i => {
+      const m = e.currentMoves[i];
+      return m && (m.type === 'ranged' || m.type === 'aoe' || m.type === 'slash');
+    });
+    if (rangedMoves.length && Math.random() < 0.5) {
+      doMove(e, p, rangedMoves[Math.floor(Math.random() * rangedMoves.length)]);
+      return;
+    }
+  }
+
   if (closeRange) {
     const roll = Math.random();
-    const atkChance = AI.isBoss ? 0.55 : 0.45;
+    const atkChance = AI.isBoss ? 0.65 : 0.55;
     if (roll < atkChance) {
       doM1(e, p);
-    } else if (roll < atkChance + 0.22) {
+    } else if (roll < atkChance + 0.30) {
       const avail = e.cooldowns.map((cd, i) => cd <= 0 ? i : -1).filter(i => i >= 0);
       if (avail.length) doMove(e, p, avail[Math.floor(Math.random() * avail.length)]);
-    } else if (roll < atkChance + 0.34) {
+    } else if (roll < atkChance + 0.38) {
       doBlock(e, true);
       setTimeout(() => doBlock(e, false), 350 + Math.random() * 350);
-    } else if (roll < atkChance + 0.44) {
+    } else if (roll < atkChance + 0.46) {
       doDash(e);
     }
   }
