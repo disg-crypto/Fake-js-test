@@ -95,8 +95,8 @@ const Renderer3D = (() => {
     const w = containerEl.clientWidth || window.innerWidth;
     const h = containerEl.clientHeight || window.innerHeight;
 
-    camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
-    camera.position.set(0, 1.5, 8);
+    camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000);
+    camera.position.set(0, 3.5, 6);
     camera.lookAt(0, 1.2, 0);
 
     renderer = new THREE.WebGLRenderer({
@@ -319,7 +319,7 @@ const Renderer3D = (() => {
     // Lower torso — tapered cylinder (athletic waist)
     const torsoLowerGeo = createLatheLimb(0.16, 0.17, 0.15, 0.25, 16);
     torsoLowerGeo.rotateX(Math.PI);
-    torsoLowerGeo.translate(0, 0.25, 0);
+    torsoLowerGeo.translate(0, 0.12, 0);
     const torsoLowerMesh = new THREE.Mesh(torsoLowerGeo, outfitMat);
     torsoLowerMesh.castShadow = true;
     meshes.torsoLower = torsoLowerMesh;
@@ -567,7 +567,7 @@ const Renderer3D = (() => {
 
     // Foot — shoe shape
     const lFoot = createShoe(shoeMat);
-    lFoot.position.set(0, -0.42, 0.03);
+    lFoot.position.set(0, -0.40, 0.03);
     lFoot.castShadow = true;
     meshes.lFoot = lFoot;
 
@@ -599,7 +599,7 @@ const Renderer3D = (() => {
     meshes.rLowerLeg = rLowerLeg;
 
     const rFoot = createShoe(shoeMat);
-    rFoot.position.set(0, -0.42, 0.03);
+    rFoot.position.set(0, -0.40, 0.03);
     rFoot.castShadow = true;
     meshes.rFoot = rFoot;
 
@@ -608,13 +608,49 @@ const Renderer3D = (() => {
     rKneeBone.add(rAnkleBone);
     bones.rAnkle = rAnkleBone;
 
-    // ── Assemble: attach meshes to bone groups ──
+    // ── Assemble: attach meshes to HIERARCHICAL bone groups ──
+    // Bone groups mirror the bone hierarchy so rotations cascade properly
     const boneGroups = {};
     for (const [name] of Object.entries(bones)) {
       const bg = new THREE.Group();
       bg.name = name;
       boneGroups[name] = bg;
     }
+
+    // Set relative positions matching bone offsets
+    boneGroups.root.position.set(0, 0, 0);
+    boneGroups.hips.position.set(0, 0.95, 0);
+    boneGroups.spine.position.set(0, 0.15, 0);
+    boneGroups.chest.position.set(0, 0.28, 0);
+    boneGroups.neck.position.set(0, 0.3, 0);
+    boneGroups.head.position.set(0, 0.12, 0);
+    boneGroups.lShoulder.position.set(-0.24, 0.25, 0);
+    boneGroups.lElbow.position.set(0, -0.28, 0);
+    if (boneGroups.lWrist) boneGroups.lWrist.position.set(0, -0.26, 0);
+    boneGroups.rShoulder.position.set(0.24, 0.25, 0);
+    boneGroups.rElbow.position.set(0, -0.28, 0);
+    if (boneGroups.rWrist) boneGroups.rWrist.position.set(0, -0.26, 0);
+    boneGroups.lHip.position.set(-0.1, -0.05, 0);
+    boneGroups.lKnee.position.set(0, -0.42, 0);
+    if (boneGroups.lAnkle) boneGroups.lAnkle.position.set(0, -0.4, 0);
+    boneGroups.rHip.position.set(0.1, -0.05, 0);
+    boneGroups.rKnee.position.set(0, -0.42, 0);
+    if (boneGroups.rAnkle) boneGroups.rAnkle.position.set(0, -0.4, 0);
+
+    // Build hierarchy: root → hips → spine → chest → neck/shoulders, hips → legs
+    boneGroups.root.add(boneGroups.hips);
+    boneGroups.hips.add(boneGroups.spine);
+    boneGroups.spine.add(boneGroups.chest);
+    boneGroups.chest.add(boneGroups.neck);
+    boneGroups.neck.add(boneGroups.head);
+    boneGroups.chest.add(boneGroups.lShoulder);
+    boneGroups.lShoulder.add(boneGroups.lElbow);
+    boneGroups.chest.add(boneGroups.rShoulder);
+    boneGroups.rShoulder.add(boneGroups.rElbow);
+    boneGroups.hips.add(boneGroups.lHip);
+    boneGroups.lHip.add(boneGroups.lKnee);
+    boneGroups.hips.add(boneGroups.rHip);
+    boneGroups.rHip.add(boneGroups.rKnee);
 
     function attach(meshName, boneName) {
       if (meshes[meshName] && boneGroups[boneName]) {
@@ -658,9 +694,8 @@ const Renderer3D = (() => {
     attach('rLowerLeg', 'rKnee');
     attach('rFoot', 'rKnee');
 
-    for (const [, bg] of Object.entries(boneGroups)) {
-      group.add(bg);
-    }
+    // Only add root to the main group — hierarchy handles the rest
+    group.add(boneGroups.root);
 
     group.scale.setScalar(scale);
 
@@ -2450,7 +2485,7 @@ const Renderer3D = (() => {
      CAMERA SHAKE
      ========================================================= */
   let cameraShake = { intensity: 0, decay: 8 };
-  const cameraBasePos = { x: 0, y: 1.5, z: 8 };
+  const cameraBasePos = { x: 0, y: 3.5, z: 6 };
 
   function triggerShake(intensity) {
     cameraShake.intensity = Math.min(cameraShake.intensity + intensity, 0.3);
@@ -2498,17 +2533,24 @@ const Renderer3D = (() => {
       }
     });
 
-    // Dynamic camera — follow fighters with zoom
+    // Roblox-style third-person camera — behind/above player, looking at action
     if (playerFighter && enemyFighter) {
       const W = window.innerWidth;
-      const midX = ((playerFighter.x + enemyFighter.x) / 2 / W - 0.5) * 8;
-      const midY = 1.2;
-      const dist = Math.abs(playerFighter.x - enemyFighter.x) / W * 8;
-      const targetZ = Math.max(5, Math.min(10, dist * 1.5 + 4));
+      const playerX = ((playerFighter.x / W) - 0.5) * 8;
+      const enemyX = ((enemyFighter.x / W) - 0.5) * 8;
+      const midX = (playerX + enemyX) / 2;
+      const dist = Math.abs(playerX - enemyX);
 
-      camera.position.x += (midX - camera.position.x) * 0.06;
-      camera.position.y += (midY - camera.position.y) * 0.04;
-      cameraBasePos.z += (targetZ - cameraBasePos.z) * 0.03;
+      // Camera orbits behind player, offset towards the action midpoint
+      const behindOffset = playerFighter.facing > 0 ? -2.5 : 2.5;
+      const targetX = playerX * 0.6 + midX * 0.4 + behindOffset * 0.3;
+      const targetY = 3.0 + dist * 0.15; // Rise higher when fighters spread apart
+      const targetZ = Math.max(4.5, Math.min(9, dist * 1.2 + 4));
+
+      // Smooth follow with different speeds for each axis
+      camera.position.x += (targetX - camera.position.x) * 0.08;
+      camera.position.y += (targetY - camera.position.y) * 0.05;
+      cameraBasePos.z += (targetZ - cameraBasePos.z) * 0.04;
 
       // Apply shake
       if (cameraShake.intensity > 0.001) {
@@ -2522,7 +2564,10 @@ const Renderer3D = (() => {
         camera.position.z += (cameraBasePos.z - camera.position.z) * 0.1;
       }
 
-      camera.lookAt(camera.position.x, 1.0, 0);
+      // Look at a point between the fighters, slightly above ground
+      const lookX = midX;
+      const lookY = 1.2;
+      camera.lookAt(lookX, lookY, 0);
     }
   }
 
