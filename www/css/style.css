@@ -135,12 +135,17 @@ html, body {
 .btn-play.secondary:hover { background: rgba(124,77,255,0.2); }
 
 /* ===== GAME SCREEN ===== */
-#screen-game { display: none; }
+#screen-game { display: none; position: relative; width: 100%; height: 100vh; overflow: hidden; background: #000; }
 #screen-game.active { display: block; }
 
 #game-canvas {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
+  display: none;
+}
+
+#three-canvas {
+  position: absolute; top: 0; left: 0;
+  width: 100% !important; height: 100% !important;
+  z-index: 1;
 }
 
 /* ===== HUD ===== */
@@ -1170,3 +1175,171 @@ html, body {
 .lobby-selected-char:hover { background: rgba(124,77,255,0.18); }
 #lobby-char-icon { font-size: 28px; }
 #lobby-char-name { font-weight: 700; letter-spacing: 1px; color: #ccc; }
+
+/* ===== IN-GAME CHARACTER INFO DROPDOWN ===== */
+.char-info-hud {
+  position: absolute;
+  top: 60px;
+  left: 12px;
+  z-index: 20;
+  width: 220px;
+  font-size: 11px;
+}
+
+.cih-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 10, 30, 0.88);
+  border: 1px solid rgba(124, 77, 255, 0.35);
+  border-radius: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  backdrop-filter: blur(8px);
+}
+.cih-header:hover {
+  background: rgba(20, 20, 50, 0.95);
+  border-color: rgba(124, 77, 255, 0.6);
+}
+.cih-icon { font-size: 18px; }
+.cih-name {
+  flex: 1;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-size: 12px;
+  color: #ddd;
+}
+.cih-arrow {
+  font-size: 10px;
+  color: #888;
+  transition: transform 0.2s;
+}
+.char-info-hud.open .cih-arrow {
+  transform: rotate(180deg);
+}
+
+.cih-body {
+  display: none;
+  background: rgba(10, 10, 30, 0.92);
+  border: 1px solid rgba(124, 77, 255, 0.25);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  padding: 8px 10px;
+  backdrop-filter: blur(8px);
+}
+.char-info-hud.open .cih-body {
+  display: block;
+}
+
+.cih-moves { display: flex; flex-direction: column; gap: 4px; }
+
+.cih-move-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: background 0.12s;
+}
+.cih-move-row:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.cih-move-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px; height: 20px;
+  background: rgba(124, 77, 255, 0.25);
+  border: 1px solid rgba(124, 77, 255, 0.45);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #c5b3ff;
+  flex-shrink: 0;
+}
+.cih-move-name {
+  flex: 1;
+  color: #ccc;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cih-move-dmg {
+  color: #ff6b6b;
+  font-weight: 700;
+  font-size: 10px;
+  min-width: 22px;
+  text-align: right;
+}
+.cih-move-cd {
+  color: #888;
+  font-size: 9px;
+  min-width: 24px;
+  text-align: right;
+}
+.cih-move-row.on-cd {
+  opacity: 0.5;
+}
+.cih-move-row.on-cd .cih-move-cd {
+  color: #ff6b6b;
+  font-weight: 700;
+}
+.cih-move-type {
+  display: inline-block;
+  font-size: 8px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.cih-move-type.slash   { background: #ff174420; color: #ff6b6b; }
+.cih-move-type.melee   { background: #ff880020; color: #ffaa44; }
+.cih-move-type.ranged  { background: #00b0ff20; color: #66ccff; }
+.cih-move-type.aoe     { background: #7c4dff20; color: #b388ff; }
+.cih-move-type.counter { background: #ffffff15; color: #cccccc; }
+.cih-move-type.summon  { background: #69db7c20; color: #69db7c; }
+.cih-move-type.defense { background: #00e67620; color: #66ffaa; }
+.cih-move-type.utility { background: #ffd60020; color: #ffdd44; }
+
+.cih-special-section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.cih-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 3px;
+}
+
+.cih-cd-ring {
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+}
+.cih-cd-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.cih-cd-bg {
+  fill: none;
+  stroke: rgba(255,255,255,0.08);
+  stroke-width: 3;
+}
+.cih-cd-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-dasharray: 100.53;
+  stroke-dashoffset: 0;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.1s;
+}
+
+.cih-awaken-info {
+  color: #b388ff;
+  font-size: 10px;
+  font-weight: 600;
+}

@@ -286,6 +286,7 @@ function startGame() {
   }
 
   updateMoveSlots(state.player);
+  buildCharInfoHud(state.player);
 
   // Screen switch
   DOM.screenSelect.classList.remove('active');
@@ -300,6 +301,19 @@ function startGame() {
   AI.reset(state.gameMode === 'boss');
   setupInput();
   lastTime = 0;
+
+  // ── Init 3D renderer, create map and rigged models ──
+  if (typeof Renderer3D !== 'undefined') {
+    const gameContainer = DOM.screenGame;
+    if (!Renderer3D.initialized) {
+      Renderer3D.init(gameContainer);
+    }
+    Renderer3D.cleanup(); // remove previous fighters + map
+    Renderer3D.createMap(state.mapId, state.platforms);
+    Renderer3D.createFighter('player', playerDef);
+    Renderer3D.createFighter('enemy', enemyDef);
+  }
+
   state.frame = requestAnimationFrame(tick);
 }
 
@@ -362,6 +376,9 @@ function updateHUD() {
   DOM.cdAwaken.textContent = canAwaken ? 'READY' : '';
   DOM.cdAwaken.classList.toggle('active', !canAwaken);
   DOM.slotAwaken.classList.toggle('on-cooldown', !canAwaken);
+
+  // In-game character info dropdown
+  updateCharInfoHud();
 }
 
 function updateMoveSlots(fighter) {
@@ -369,6 +386,102 @@ function updateMoveSlots(fighter) {
     if (DOM.moveSlots[i]) DOM.moveSlots[i].name.textContent = m.name;
   });
   DOM.moveRName.textContent = fighter.currentSpecial.name;
+}
+
+/* =========================================================
+   IN-GAME CHARACTER INFO DROPDOWN
+   Shows all moves, damage, types, cooldowns in real-time.
+   ========================================================= */
+const charInfoHud = document.getElementById('char-info-hud');
+const cihToggle   = document.getElementById('cih-toggle');
+const cihBody     = document.getElementById('cih-body');
+const cihMovesList = document.getElementById('cih-moves-list');
+const cihSpecialRow = document.getElementById('cih-special-row');
+const cihAwakenInfo = document.getElementById('cih-awaken-info');
+const cihCharIcon  = document.getElementById('cih-char-icon');
+const cihCharName  = document.getElementById('cih-char-name');
+
+if (cihToggle) {
+  cihToggle.addEventListener('click', () => {
+    charInfoHud.classList.toggle('open');
+  });
+}
+
+function buildCharInfoHud(fighter) {
+  if (!charInfoHud || !fighter) return;
+  charInfoHud.classList.remove('hidden');
+
+  cihCharIcon.textContent = fighter.def.icon;
+  cihCharName.textContent = fighter.currentName;
+
+  // Build move rows
+  cihMovesList.innerHTML = '';
+  fighter.currentMoves.forEach((m, i) => {
+    const row = document.createElement('div');
+    row.className = 'cih-move-row';
+    row.dataset.idx = i;
+    row.innerHTML = `
+      <span class="cih-move-key">${i + 1}</span>
+      <span class="cih-move-name">${m.name}</span>
+      <span class="cih-move-type ${m.type || 'melee'}">${m.type || 'melee'}</span>
+      <span class="cih-move-dmg">${m.damage || 0}</span>
+      <span class="cih-move-cd" data-cd="${i}">-</span>
+    `;
+    cihMovesList.appendChild(row);
+  });
+
+  // Special
+  const sp = fighter.currentSpecial;
+  cihSpecialRow.innerHTML = `
+    <span class="cih-move-key">R</span>
+    <span class="cih-move-name">${sp.name}</span>
+    <span class="cih-move-type ${sp.type || 'ultimate'}">${sp.type || 'ultimate'}</span>
+    <span class="cih-move-dmg">${sp.damage || 0}</span>
+    <span class="cih-move-cd" data-cd="special">-</span>
+  `;
+
+  // Awakening info
+  if (fighter.def.awakening) {
+    cihAwakenInfo.textContent = fighter.def.awakening.name + ' — ' +
+      fighter.def.awakening.moves.map(m => m.name).join(', ');
+  } else {
+    cihAwakenInfo.textContent = 'N/A';
+  }
+}
+
+function updateCharInfoHud() {
+  if (!charInfoHud || !state.player) return;
+
+  const p = state.player;
+
+  // Update cooldown numbers
+  p.cooldowns.forEach((cd, i) => {
+    const cdEl = cihMovesList.querySelector(`[data-cd="${i}"]`);
+    const row = cihMovesList.querySelector(`[data-idx="${i}"]`);
+    if (cdEl) {
+      cdEl.textContent = cd > 0 ? Math.ceil(cd) + 's' : 'RDY';
+      cdEl.style.color = cd > 0 ? '#ff6b6b' : '#69db7c';
+    }
+    if (row) row.classList.toggle('on-cd', cd > 0);
+  });
+
+  // Special cooldown
+  const spCdEl = cihSpecialRow.querySelector('[data-cd="special"]');
+  if (spCdEl) {
+    if (p.ult < 100) {
+      spCdEl.textContent = Math.floor(p.ult) + '%';
+      spCdEl.style.color = '#888';
+    } else if (p.specialCd > 0) {
+      spCdEl.textContent = Math.ceil(p.specialCd) + 's';
+      spCdEl.style.color = '#ff6b6b';
+    } else {
+      spCdEl.textContent = 'RDY';
+      spCdEl.style.color = '#ffd600';
+    }
+  }
+
+  // Update name if awakened
+  cihCharName.textContent = p.currentName;
 }
 
 /* =========================================================
@@ -402,6 +515,19 @@ function spawnDmgNum(text, x, y, color = '#ff6b6b') {
    COMBAT ACTIONS
    ========================================================= */
 
+// 3D VFX bridge — routes effects to the 3D renderer
+function vfx3D(type, x, y, color, options) {
+  if (typeof Renderer3D !== 'undefined' && Renderer3D.initialized && Renderer3D.to3D) {
+    const p = Renderer3D.to3D(x, y);
+    Renderer3D.spawnVFX3D(type, p.x, p.y, 0, color, options);
+  }
+}
+function shake3D(intensity) {
+  if (typeof Renderer3D !== 'undefined' && Renderer3D.triggerShake) {
+    Renderer3D.triggerShake(intensity);
+  }
+}
+
 // M1 hit range — bosses have slightly longer reach
 const M1_RANGE = 135;
 
@@ -425,17 +551,20 @@ function doM1(attacker, defender) {
     return;
   }
 
-  // Combo scaling: hits 1-2 = 3 dmg, hits 3-4 = 4 dmg; bosses deal more
-  const baseDmg = attacker.m1Combo < 2 ? 3 : 4;
-  const hitDmg  = attacker.isBoss ? baseDmg * 4 : baseDmg;
+  // Combo scaling: hits 1=6, 2=7, 3=8, 4=9; bosses deal 3x
+  const comboDmg = [6, 7, 8, 9];
+  const baseDmg = comboDmg[attacker.m1Combo];
+  const hitDmg  = attacker.isBoss ? baseDmg * 3 : baseDmg;
   const dmg     = defender.takeDamage(hitDmg);
 
   attacker.addUlt(hitDmg * 0.2);
   attacker.m1Combo      = (attacker.m1Combo + 1) % 4;
   attacker.m1ComboTimer = 1.7;
 
-  // Per-character M1 VFX
+  // Per-character M1 VFX (2D fallback + 3D)
   VFX.m1Hit(attacker.def.id, attacker.x, defender.x, defender.y);
+  vfx3D('burst', defender.x, defender.y, attacker.color, { count: 4 });
+  shake3D(0.04);
 
   const comboLabel = ['1ST', '2ND', '3RD', '4TH'][attacker.m1Combo === 0 ? 3 : attacker.m1Combo - 1];
   log(`${attacker.isPlayer ? 'You' : 'Enemy'} M1 [${comboLabel}] — ${dmg} dmg`, 'dmg');
@@ -456,6 +585,7 @@ function doMove(attacker, defender, moveIndex) {
     setTimeout(() => { attacker.invincible = false; }, 800);
     // Barrier/defense VFX on self
     VFX.ring(attacker.x, attacker.y, attacker.color, 65, 3, 0.35);
+    vfx3D('ring', attacker.x, attacker.y, attacker.color, { radius: 0.3, expandRate: 2 });
     log(`${attacker.isPlayer ? 'You' : 'Enemy'} used ${move.name}!`, 'system');
     return;
   }
@@ -463,8 +593,26 @@ function doMove(attacker, defender, moveIndex) {
   const dmg = defender.takeDamage(move.damage);
   attacker.addUlt(move.damage * 0.25);
 
-  // Move VFX
-  VFX.moveHit(move.type, defender.x, defender.y, attacker.color, move.damage);
+  // Move VFX — try character-specific first, fall back to generic
+  if (!VFX.charMoveHit(attacker.def.id, moveIndex, defender.x, defender.y)) {
+    VFX.moveHit(move.type, defender.x, defender.y, attacker.color, move.damage);
+  }
+  // 3D VFX for moves
+  if (move.type === 'slash') {
+    vfx3D('slash', defender.x, defender.y, attacker.color, { width: 1.2 });
+    shake3D(0.08);
+  } else if (move.type === 'aoe') {
+    vfx3D('ring', defender.x, defender.y, attacker.color, { radius: 0.2, expandRate: 5 });
+    vfx3D('burst', defender.x, defender.y, attacker.color, { count: 8 });
+    shake3D(0.12);
+  } else if (move.type === 'ranged') {
+    vfx3D('flash', defender.x, defender.y, attacker.color, { radius: 0.2 });
+    vfx3D('burst', defender.x, defender.y, attacker.color, { count: 5 });
+    shake3D(0.06);
+  } else {
+    vfx3D('burst', defender.x, defender.y, attacker.color, { count: 6 });
+    shake3D(0.06);
+  }
 
   if (move.type === 'counter') {
     defender.stunTimer = 1.5;
@@ -492,12 +640,18 @@ function doSpecial(attacker, defender) {
     attacker.heal(sp.heal);
     VFX.ring(attacker.x, attacker.y, '#69db7c', 90, 4, 0.4);
     VFX.ring(attacker.x, attacker.y, '#ffffff', 55, 2, 0.28);
+    vfx3D('ring', attacker.x, attacker.y, '#69db7c', { radius: 0.3, expandRate: 3 });
+    vfx3D('burst', attacker.x, attacker.y, '#69db7c', { count: 8 });
     log(`JACKPOT! ${sp.name} — +${sp.heal} HP!`, 'heal');
     spawnDmgNum(`+${sp.heal}`, attacker.x, attacker.y - 80, '#69db7c');
   } else {
     const dmg = defender.takeDamage(sp.damage);
     attacker.addUlt(sp.damage * 0.1);
     VFX.specialHit(defender.x, defender.y, attacker.color);
+    vfx3D('flash', defender.x, defender.y, attacker.color, { radius: 0.5 });
+    vfx3D('burst', defender.x, defender.y, attacker.color, { count: 12 });
+    vfx3D('ring', defender.x, defender.y, attacker.color, { radius: 0.2, expandRate: 6 });
+    shake3D(0.2);
     log(`SPECIAL: ${sp.name} — ${dmg} DAMAGE!`, 'special');
     spawnDmgNum(dmg, defender.x, defender.y - 80, '#ffd43b');
   }
@@ -519,6 +673,10 @@ function doAwaken(fighter) {
   fighter.heal(bonus);
 
   VFX.awakenBurst(fighter.x, fighter.y, fighter.color);
+  vfx3D('flash', fighter.x, fighter.y, fighter.color, { radius: 0.8 });
+  vfx3D('ring', fighter.x, fighter.y, fighter.color, { radius: 0.3, expandRate: 8 });
+  vfx3D('burst', fighter.x, fighter.y, fighter.color, { count: 15 });
+  shake3D(0.25);
 
   log(`${fighter.isPlayer ? 'YOU' : 'ENEMY'} AWAKENED → ${fighter.def.awakening.name}!`, 'special');
 
@@ -544,6 +702,7 @@ function doDash(fighter) {
   setTimeout(() => { fighter.invincible = false; }, 320);
   // Initial dash burst
   VFX.ring(fighter.x, fighter.y, fighter.color, 40, 2, 0.2);
+  vfx3D('burst', fighter.x, fighter.y, fighter.color, { count: 3 });
 }
 
 /* =========================================================
@@ -572,6 +731,10 @@ function triggerPhaseTransition(boss, phase) {
 
   // Canvas VFX
   VFX.phaseTransition(boss.x, boss.y, boss.color);
+  vfx3D('flash', boss.x, boss.y, boss.color, { radius: 1.0 });
+  vfx3D('ring', boss.x, boss.y, boss.color, { radius: 0.5, expandRate: 10 });
+  vfx3D('burst', boss.x, boss.y, boss.color, { count: 20 });
+  shake3D(0.3);
 
   // HTML overlay flash
   state.enrageFlash = 1;
@@ -609,7 +772,7 @@ function updateAI(dt) {
   AI.thinkTimer -= dt;
 
   const dist = Math.abs(e.x - p.x);
-  const speed = AI.isBoss ? 70 : 85;
+  const speed = AI.isBoss ? 90 : 100;
 
   // Move toward player
   if (dist > (AI.isBoss ? 130 : 90)) {
@@ -620,8 +783,8 @@ function updateAI(dt) {
   if (AI.thinkTimer > 0) return;
   // Boss thinks faster
   AI.thinkTimer = AI.isBoss
-    ? (0.3 + Math.random() * 0.4)
-    : (0.5 + Math.random() * 0.8);
+    ? (0.2 + Math.random() * 0.15)
+    : (0.35 + Math.random() * 0.25);
 
   if (e.stunTimer > 0) return;
 
@@ -636,18 +799,33 @@ function updateAI(dt) {
   }
 
   const closeRange = dist < (AI.isBoss ? 160 : 120);
+  const midRange = dist < (AI.isBoss ? 280 : 220);
+
+  // Mid-range: try ranged moves
+  if (!closeRange && midRange) {
+    const avail = e.cooldowns.map((cd, i) => cd <= 0 ? i : -1).filter(i => i >= 0);
+    const rangedMoves = avail.filter(i => {
+      const m = e.currentMoves[i];
+      return m && (m.type === 'ranged' || m.type === 'aoe' || m.type === 'slash');
+    });
+    if (rangedMoves.length && Math.random() < 0.5) {
+      doMove(e, p, rangedMoves[Math.floor(Math.random() * rangedMoves.length)]);
+      return;
+    }
+  }
+
   if (closeRange) {
     const roll = Math.random();
-    const atkChance = AI.isBoss ? 0.55 : 0.45;
+    const atkChance = AI.isBoss ? 0.65 : 0.55;
     if (roll < atkChance) {
       doM1(e, p);
-    } else if (roll < atkChance + 0.22) {
+    } else if (roll < atkChance + 0.30) {
       const avail = e.cooldowns.map((cd, i) => cd <= 0 ? i : -1).filter(i => i >= 0);
       if (avail.length) doMove(e, p, avail[Math.floor(Math.random() * avail.length)]);
-    } else if (roll < atkChance + 0.34) {
+    } else if (roll < atkChance + 0.38) {
       doBlock(e, true);
       setTimeout(() => doBlock(e, false), 350 + Math.random() * 350);
-    } else if (roll < atkChance + 0.44) {
+    } else if (roll < atkChance + 0.46) {
       doDash(e);
     }
   }
@@ -743,31 +921,12 @@ function updateFighter(fighter, dt) {
    RENDER
    ========================================================= */
 function render() {
-  const W = DOM.canvas.width;
-  const H = DOM.canvas.height;
-  const t = state.time;
-
-  // 1. Map background (no shake — stays stable)
-  renderMapBackground(ctx, W, H, state.mapId, t);
-
-  // 2. Everything that shakes together
-  ctx.save();
-  ctx.translate(VFX.sx, VFX.sy);
-
-  // 3. Map foreground + platforms
-  renderMapForeground(ctx, W, H, state.mapId, t, state.platforms);
-
-  // 4. Fighters
-  drawFighter(state.player);
-  drawFighter(state.enemy);
-
-  // 5. World-space VFX (particles, slashes, rings, shockwaves)
-  VFX.renderWorld(ctx);
-
-  ctx.restore();
-
-  // 6. Screen-space VFX (flash overlays — no shake)
-  VFX.renderScreen(ctx, W, H);
+  // Full 3D rendering — Renderer3D handles everything
+  if (typeof Renderer3D !== 'undefined' && Renderer3D.initialized) {
+    const dt = state._lastDt || 0.016;
+    Renderer3D.update(dt, state.player, state.enemy);
+    Renderer3D.render();
+  }
 }
 
 function drawFighter(f) {
@@ -900,6 +1059,7 @@ function tick(ts = 0) {
   const dt = Math.min((ts - lastTime) / 1000, 0.05);
   lastTime = ts;
   state.time += dt;
+  state._lastDt = dt;
 
   updateFighter(state.player, dt);
   updateFighter(state.enemy,  dt);
@@ -1034,6 +1194,8 @@ DOM.btnRematch.addEventListener('click', () => {
 DOM.btnBack.addEventListener('click', () => {
   cancelAnimationFrame(state.frame);
   state.running = false;
+  if (typeof Renderer3D !== 'undefined') Renderer3D.cleanup();
+  if (charInfoHud) { charInfoHud.classList.add('hidden'); charInfoHud.classList.remove('open'); }
   DOM.screenGame.classList.remove('active');
   DOM.screenSelect.classList.add('active');
   DOM.btnPlay.disabled = false;
@@ -1049,6 +1211,7 @@ function resizeCanvas() {
 
 window.addEventListener('resize', () => {
   resizeCanvas();
+  if (typeof Renderer3D !== 'undefined' && Renderer3D.initialized) Renderer3D.resize();
   if (state.player) {
     state.platforms = getPlatforms(DOM.canvas.width, DOM.canvas.height);
     const gnd = GROUND();

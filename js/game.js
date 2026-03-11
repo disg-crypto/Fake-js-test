@@ -302,13 +302,14 @@ function startGame() {
   setupInput();
   lastTime = 0;
 
-  // ── Init 3D renderer and create rigged models ──
+  // ── Init 3D renderer, create map and rigged models ──
   if (typeof Renderer3D !== 'undefined') {
     const gameContainer = DOM.screenGame;
     if (!Renderer3D.initialized) {
       Renderer3D.init(gameContainer);
     }
-    Renderer3D.cleanup(); // remove previous fighters
+    Renderer3D.cleanup(); // remove previous fighters + map
+    Renderer3D.createMap(state.mapId, state.platforms);
     Renderer3D.createFighter('player', playerDef);
     Renderer3D.createFighter('enemy', enemyDef);
   }
@@ -514,6 +515,19 @@ function spawnDmgNum(text, x, y, color = '#ff6b6b') {
    COMBAT ACTIONS
    ========================================================= */
 
+// 3D VFX bridge — routes effects to the 3D renderer
+function vfx3D(type, x, y, color, options) {
+  if (typeof Renderer3D !== 'undefined' && Renderer3D.initialized && Renderer3D.to3D) {
+    const p = Renderer3D.to3D(x, y);
+    Renderer3D.spawnVFX3D(type, p.x, p.y, 0, color, options);
+  }
+}
+function shake3D(intensity) {
+  if (typeof Renderer3D !== 'undefined' && Renderer3D.triggerShake) {
+    Renderer3D.triggerShake(intensity);
+  }
+}
+
 // M1 hit range — bosses have slightly longer reach
 const M1_RANGE = 135;
 
@@ -537,17 +551,20 @@ function doM1(attacker, defender) {
     return;
   }
 
-  // Combo scaling: hits 1-2 = 3 dmg, hits 3-4 = 4 dmg; bosses deal more
-  const baseDmg = attacker.m1Combo < 2 ? 3 : 4;
-  const hitDmg  = attacker.isBoss ? baseDmg * 4 : baseDmg;
+  // Combo scaling: hits 1=6, 2=7, 3=8, 4=9; bosses deal 3x
+  const comboDmg = [6, 7, 8, 9];
+  const baseDmg = comboDmg[attacker.m1Combo];
+  const hitDmg  = attacker.isBoss ? baseDmg * 3 : baseDmg;
   const dmg     = defender.takeDamage(hitDmg);
 
   attacker.addUlt(hitDmg * 0.2);
   attacker.m1Combo      = (attacker.m1Combo + 1) % 4;
   attacker.m1ComboTimer = 1.7;
 
-  // Per-character M1 VFX
+  // Per-character M1 VFX (2D fallback + 3D)
   VFX.m1Hit(attacker.def.id, attacker.x, defender.x, defender.y);
+  vfx3D('burst', defender.x, defender.y, attacker.color, { count: 4 });
+  shake3D(0.04);
 
   const comboLabel = ['1ST', '2ND', '3RD', '4TH'][attacker.m1Combo === 0 ? 3 : attacker.m1Combo - 1];
   log(`${attacker.isPlayer ? 'You' : 'Enemy'} M1 [${comboLabel}] — ${dmg} dmg`, 'dmg');
@@ -568,6 +585,7 @@ function doMove(attacker, defender, moveIndex) {
     setTimeout(() => { attacker.invincible = false; }, 800);
     // Barrier/defense VFX on self
     VFX.ring(attacker.x, attacker.y, attacker.color, 65, 3, 0.35);
+    vfx3D('ring', attacker.x, attacker.y, attacker.color, { radius: 0.3, expandRate: 2 });
     log(`${attacker.isPlayer ? 'You' : 'Enemy'} used ${move.name}!`, 'system');
     return;
   }
@@ -578,6 +596,22 @@ function doMove(attacker, defender, moveIndex) {
   // Move VFX — try character-specific first, fall back to generic
   if (!VFX.charMoveHit(attacker.def.id, moveIndex, defender.x, defender.y)) {
     VFX.moveHit(move.type, defender.x, defender.y, attacker.color, move.damage);
+  }
+  // 3D VFX for moves
+  if (move.type === 'slash') {
+    vfx3D('slash', defender.x, defender.y, attacker.color, { width: 1.2 });
+    shake3D(0.08);
+  } else if (move.type === 'aoe') {
+    vfx3D('ring', defender.x, defender.y, attacker.color, { radius: 0.2, expandRate: 5 });
+    vfx3D('burst', defender.x, defender.y, attacker.color, { count: 8 });
+    shake3D(0.12);
+  } else if (move.type === 'ranged') {
+    vfx3D('flash', defender.x, defender.y, attacker.color, { radius: 0.2 });
+    vfx3D('burst', defender.x, defender.y, attacker.color, { count: 5 });
+    shake3D(0.06);
+  } else {
+    vfx3D('burst', defender.x, defender.y, attacker.color, { count: 6 });
+    shake3D(0.06);
   }
 
   if (move.type === 'counter') {
@@ -606,12 +640,18 @@ function doSpecial(attacker, defender) {
     attacker.heal(sp.heal);
     VFX.ring(attacker.x, attacker.y, '#69db7c', 90, 4, 0.4);
     VFX.ring(attacker.x, attacker.y, '#ffffff', 55, 2, 0.28);
+    vfx3D('ring', attacker.x, attacker.y, '#69db7c', { radius: 0.3, expandRate: 3 });
+    vfx3D('burst', attacker.x, attacker.y, '#69db7c', { count: 8 });
     log(`JACKPOT! ${sp.name} — +${sp.heal} HP!`, 'heal');
     spawnDmgNum(`+${sp.heal}`, attacker.x, attacker.y - 80, '#69db7c');
   } else {
     const dmg = defender.takeDamage(sp.damage);
     attacker.addUlt(sp.damage * 0.1);
     VFX.specialHit(defender.x, defender.y, attacker.color);
+    vfx3D('flash', defender.x, defender.y, attacker.color, { radius: 0.5 });
+    vfx3D('burst', defender.x, defender.y, attacker.color, { count: 12 });
+    vfx3D('ring', defender.x, defender.y, attacker.color, { radius: 0.2, expandRate: 6 });
+    shake3D(0.2);
     log(`SPECIAL: ${sp.name} — ${dmg} DAMAGE!`, 'special');
     spawnDmgNum(dmg, defender.x, defender.y - 80, '#ffd43b');
   }
@@ -633,6 +673,10 @@ function doAwaken(fighter) {
   fighter.heal(bonus);
 
   VFX.awakenBurst(fighter.x, fighter.y, fighter.color);
+  vfx3D('flash', fighter.x, fighter.y, fighter.color, { radius: 0.8 });
+  vfx3D('ring', fighter.x, fighter.y, fighter.color, { radius: 0.3, expandRate: 8 });
+  vfx3D('burst', fighter.x, fighter.y, fighter.color, { count: 15 });
+  shake3D(0.25);
 
   log(`${fighter.isPlayer ? 'YOU' : 'ENEMY'} AWAKENED → ${fighter.def.awakening.name}!`, 'special');
 
@@ -658,6 +702,7 @@ function doDash(fighter) {
   setTimeout(() => { fighter.invincible = false; }, 320);
   // Initial dash burst
   VFX.ring(fighter.x, fighter.y, fighter.color, 40, 2, 0.2);
+  vfx3D('burst', fighter.x, fighter.y, fighter.color, { count: 3 });
 }
 
 /* =========================================================
@@ -686,6 +731,10 @@ function triggerPhaseTransition(boss, phase) {
 
   // Canvas VFX
   VFX.phaseTransition(boss.x, boss.y, boss.color);
+  vfx3D('flash', boss.x, boss.y, boss.color, { radius: 1.0 });
+  vfx3D('ring', boss.x, boss.y, boss.color, { radius: 0.5, expandRate: 10 });
+  vfx3D('burst', boss.x, boss.y, boss.color, { count: 20 });
+  shake3D(0.3);
 
   // HTML overlay flash
   state.enrageFlash = 1;
@@ -723,7 +772,7 @@ function updateAI(dt) {
   AI.thinkTimer -= dt;
 
   const dist = Math.abs(e.x - p.x);
-  const speed = AI.isBoss ? 70 : 85;
+  const speed = AI.isBoss ? 90 : 100;
 
   // Move toward player
   if (dist > (AI.isBoss ? 130 : 90)) {
@@ -734,8 +783,8 @@ function updateAI(dt) {
   if (AI.thinkTimer > 0) return;
   // Boss thinks faster
   AI.thinkTimer = AI.isBoss
-    ? (0.3 + Math.random() * 0.4)
-    : (0.5 + Math.random() * 0.8);
+    ? (0.2 + Math.random() * 0.15)
+    : (0.35 + Math.random() * 0.25);
 
   if (e.stunTimer > 0) return;
 
@@ -750,18 +799,33 @@ function updateAI(dt) {
   }
 
   const closeRange = dist < (AI.isBoss ? 160 : 120);
+  const midRange = dist < (AI.isBoss ? 280 : 220);
+
+  // Mid-range: try ranged moves
+  if (!closeRange && midRange) {
+    const avail = e.cooldowns.map((cd, i) => cd <= 0 ? i : -1).filter(i => i >= 0);
+    const rangedMoves = avail.filter(i => {
+      const m = e.currentMoves[i];
+      return m && (m.type === 'ranged' || m.type === 'aoe' || m.type === 'slash');
+    });
+    if (rangedMoves.length && Math.random() < 0.5) {
+      doMove(e, p, rangedMoves[Math.floor(Math.random() * rangedMoves.length)]);
+      return;
+    }
+  }
+
   if (closeRange) {
     const roll = Math.random();
-    const atkChance = AI.isBoss ? 0.55 : 0.45;
+    const atkChance = AI.isBoss ? 0.65 : 0.55;
     if (roll < atkChance) {
       doM1(e, p);
-    } else if (roll < atkChance + 0.22) {
+    } else if (roll < atkChance + 0.30) {
       const avail = e.cooldowns.map((cd, i) => cd <= 0 ? i : -1).filter(i => i >= 0);
       if (avail.length) doMove(e, p, avail[Math.floor(Math.random() * avail.length)]);
-    } else if (roll < atkChance + 0.34) {
+    } else if (roll < atkChance + 0.38) {
       doBlock(e, true);
       setTimeout(() => doBlock(e, false), 350 + Math.random() * 350);
-    } else if (roll < atkChance + 0.44) {
+    } else if (roll < atkChance + 0.46) {
       doDash(e);
     }
   }
@@ -857,33 +921,7 @@ function updateFighter(fighter, dt) {
    RENDER
    ========================================================= */
 function render() {
-  const W = DOM.canvas.width;
-  const H = DOM.canvas.height;
-  const t = state.time;
-
-  // 1. Map background (no shake — stays stable)
-  renderMapBackground(ctx, W, H, state.mapId, t);
-
-  // 2. Everything that shakes together
-  ctx.save();
-  ctx.translate(VFX.sx, VFX.sy);
-
-  // 3. Map foreground + platforms
-  renderMapForeground(ctx, W, H, state.mapId, t, state.platforms);
-
-  // 4. Fighters
-  drawFighter(state.player);
-  drawFighter(state.enemy);
-
-  // 5. World-space VFX (particles, slashes, rings, shockwaves)
-  VFX.renderWorld(ctx);
-
-  ctx.restore();
-
-  // 6. Screen-space VFX (flash overlays — no shake)
-  VFX.renderScreen(ctx, W, H);
-
-  // 7. 3D overlay — update and render rigged models
+  // Full 3D rendering — Renderer3D handles everything
   if (typeof Renderer3D !== 'undefined' && Renderer3D.initialized) {
     const dt = state._lastDt || 0.016;
     Renderer3D.update(dt, state.player, state.enemy);
