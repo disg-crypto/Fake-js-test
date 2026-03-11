@@ -16,6 +16,72 @@ const Renderer3D = (() => {
   let lights = {};
   let initialized = false;
   let canvasEl = null;
+  const textureCache = {};  // charId → THREE.Texture
+
+  /* =========================================================
+     PHOTO TEXTURE SYSTEM
+     Load character photos from assets/photos/<charId>.png
+     and map them onto the 3D humanoid head + torso.
+     ========================================================= */
+  const PHOTO_PATH = 'assets/photos/';
+  const textureLoader = typeof THREE !== 'undefined' ? new THREE.TextureLoader() : null;
+
+  function loadCharacterPhoto(charId) {
+    if (textureCache[charId]) return Promise.resolve(textureCache[charId]);
+    if (!textureLoader) return Promise.resolve(null);
+
+    return new Promise(resolve => {
+      // Try character-specific photo, then fallback
+      const url = PHOTO_PATH + charId + '.png';
+      textureLoader.load(url,
+        tex => {
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.flipY = true;
+          textureCache[charId] = tex;
+          resolve(tex);
+        },
+        undefined,
+        () => {
+          // Try .jpg
+          textureLoader.load(PHOTO_PATH + charId + '.jpg',
+            tex => {
+              tex.colorSpace = THREE.SRGBColorSpace;
+              tex.flipY = true;
+              textureCache[charId] = tex;
+              resolve(tex);
+            },
+            undefined,
+            () => resolve(null) // No photo available
+          );
+        }
+      );
+    });
+  }
+
+  function applyPhotoTexture(model, texture) {
+    if (!texture || !model.meshes) return;
+
+    // Apply face photo to head mesh
+    if (model.meshes.head) {
+      const faceMat = new THREE.MeshStandardMaterial({
+        map: texture,
+        roughness: 0.5,
+        metalness: 0.02,
+        emissive: new THREE.Color(0x331100),
+        emissiveIntensity: 0.05
+      });
+      model.meshes.head.material = faceMat;
+      model._faceMat = faceMat;
+    }
+
+    // Apply to chest/torso as outfit texture
+    if (model.meshes.chest) {
+      const outfitTexMat = model.outfitMat.clone();
+      outfitTexMat.map = texture;
+      outfitTexMat.needsUpdate = true;
+      model.meshes.chest.material = outfitTexMat;
+    }
+  }
 
   /* =========================================================
      INIT — Create Three.js scene overlaying the 2D canvas
@@ -624,7 +690,8 @@ const Renderer3D = (() => {
         blocking: false,
         hitFlash: 0,
         isBoss: !!charDef.isBoss,
-        moving: false
+        moving: false,
+        m1Combo: 0
       }
     };
   }
@@ -810,6 +877,286 @@ const Renderer3D = (() => {
   }
 
   /* =========================================================
+     PER-CHARACTER M1 COMBAT ANIMATIONS
+     Each character has a unique fighting style with 4-hit combos.
+     ========================================================= */
+  function animateM1(bg, charId, combo, p, swing, facing) {
+    switch (charId) {
+
+      // VESSEL (Yuji) — Brawler: jab, cross, hook, uppercut
+      case 'vessel':
+        switch (combo) {
+          case 0: // Right jab
+            bg.rShoulder.rotation.x = -1.6 * swing;
+            bg.rElbow.rotation.x = -0.6 * swing;
+            bg.spine.rotation.y = -0.2 * swing * facing;
+            break;
+          case 1: // Left cross
+            bg.lShoulder.rotation.x = -1.8 * swing;
+            bg.lShoulder.rotation.z = 0.3 * swing;
+            bg.lElbow.rotation.x = -0.7 * swing;
+            bg.spine.rotation.y = 0.35 * swing * facing;
+            bg.chest.rotation.y = 0.2 * swing * facing;
+            break;
+          case 2: // Right hook — wide horizontal swing
+            bg.rShoulder.rotation.x = -1.2 * swing;
+            bg.rShoulder.rotation.y = -1.0 * swing;
+            bg.rElbow.rotation.x = -1.4 * swing;
+            bg.spine.rotation.y = -0.4 * swing * facing;
+            bg.hips.rotation.y = -0.15 * swing * facing;
+            break;
+          case 3: // Uppercut — crouch then rise
+            if (p < 0.4) {
+              const crouch = p / 0.4;
+              bg.spine.rotation.x = 0.15 * crouch;
+              if (bg.lKnee) bg.lKnee.rotation.x = 0.3 * crouch;
+              if (bg.rKnee) bg.rKnee.rotation.x = 0.3 * crouch;
+            } else {
+              const rise = (p - 0.4) / 0.6;
+              bg.rShoulder.rotation.x = -2.2 * Math.sin(rise * Math.PI);
+              bg.rShoulder.rotation.z = -0.4 * rise;
+              bg.spine.rotation.x = -0.2 * rise;
+            }
+            break;
+        }
+        if (bg.lHip) bg.lHip.rotation.x = -0.15 * swing;
+        break;
+
+      // HONORED ONE (Gojo) — Elegant: palm strike, infinity push, finger flick, backhand
+      case 'honored_one':
+      case 'boss_gojo':
+        switch (combo) {
+          case 0: // Open palm push
+            bg.rShoulder.rotation.x = -1.5 * swing;
+            bg.rShoulder.rotation.z = -0.1 * swing;
+            bg.rElbow.rotation.x = -0.3 * swing; // Extended arm
+            bg.spine.rotation.y = -0.15 * swing * facing;
+            break;
+          case 1: // Left infinity push — both hands forward
+            bg.lShoulder.rotation.x = -1.4 * swing;
+            bg.rShoulder.rotation.x = -1.4 * swing;
+            bg.lElbow.rotation.x = -0.2 * swing;
+            bg.rElbow.rotation.x = -0.2 * swing;
+            bg.spine.rotation.x = 0.1 * swing;
+            break;
+          case 2: // Finger flick — subtle but deadly
+            bg.rShoulder.rotation.x = -1.0 * swing;
+            bg.rElbow.rotation.x = -1.2 * swing;
+            bg.spine.rotation.y = -0.1 * swing * facing;
+            if (bg.head) bg.head.rotation.y = -0.15 * swing * facing;
+            break;
+          case 3: // Spinning backhand
+            bg.lShoulder.rotation.x = -1.8 * swing;
+            bg.lShoulder.rotation.y = 0.8 * swing;
+            bg.spine.rotation.y = 0.5 * swing * facing;
+            bg.chest.rotation.y = 0.3 * swing * facing;
+            bg.hips.rotation.y = 0.2 * swing * facing;
+            break;
+        }
+        break;
+
+      // TEN SHADOWS (Megumi) — Shadow Claw: raking slashes
+      case 'ten_shadows':
+        switch (combo) {
+          case 0: // Right claw rake down
+            bg.rShoulder.rotation.x = -1.8 * swing;
+            bg.rShoulder.rotation.z = -0.5 * swing;
+            bg.rElbow.rotation.x = -1.0 * swing;
+            bg.spine.rotation.x = 0.1 * swing;
+            break;
+          case 1: // Left claw rake across
+            bg.lShoulder.rotation.x = -1.5 * swing;
+            bg.lShoulder.rotation.y = 0.6 * swing;
+            bg.lElbow.rotation.x = -0.8 * swing;
+            bg.spine.rotation.y = 0.3 * swing * facing;
+            break;
+          case 2: // Double claw X-slash
+            bg.lShoulder.rotation.x = -1.6 * swing;
+            bg.rShoulder.rotation.x = -1.6 * swing;
+            bg.lShoulder.rotation.z = 0.6 * swing;
+            bg.rShoulder.rotation.z = -0.6 * swing;
+            bg.lElbow.rotation.x = -0.5 * swing;
+            bg.rElbow.rotation.x = -0.5 * swing;
+            break;
+          case 3: // Shadow uppercut claw — leap
+            bg.rShoulder.rotation.x = -2.0 * swing;
+            bg.rElbow.rotation.x = -0.6 * swing;
+            bg.spine.rotation.x = -0.15 * swing;
+            if (bg.lHip) bg.lHip.rotation.x = -0.25 * swing;
+            if (bg.rHip) bg.rHip.rotation.x = -0.25 * swing;
+            break;
+        }
+        break;
+
+      // HAKARI — Brawler/gambler: slot punch, dice throw, jackpot slam, elbow
+      case 'hakari':
+        switch (combo) {
+          case 0: // Right straight
+            bg.rShoulder.rotation.x = -1.7 * swing;
+            bg.rElbow.rotation.x = -0.5 * swing;
+            bg.spine.rotation.y = -0.25 * swing * facing;
+            break;
+          case 1: // Left body blow
+            bg.lShoulder.rotation.x = -1.3 * swing;
+            bg.lShoulder.rotation.z = 0.4 * swing;
+            bg.lElbow.rotation.x = -1.2 * swing;
+            bg.spine.rotation.x = 0.15 * swing;
+            bg.spine.rotation.y = 0.2 * swing * facing;
+            break;
+          case 2: // Elbow strike
+            bg.rShoulder.rotation.x = -1.0 * swing;
+            bg.rShoulder.rotation.y = -0.5 * swing;
+            bg.rElbow.rotation.x = -2.0 * swing;
+            bg.spine.rotation.y = -0.35 * swing * facing;
+            bg.chest.rotation.y = -0.2 * swing * facing;
+            break;
+          case 3: // Overhead slam — jackpot!
+            if (p < 0.5) {
+              const wu = p / 0.5;
+              bg.lShoulder.rotation.x = -2.5 * wu;
+              bg.rShoulder.rotation.x = -2.5 * wu;
+              if (bg.head) bg.head.rotation.x = -0.2 * wu;
+            } else {
+              const smash = (p - 0.5) / 0.5;
+              bg.lShoulder.rotation.x = -2.5 + 3.5 * smash;
+              bg.rShoulder.rotation.x = -2.5 + 3.5 * smash;
+              bg.spine.rotation.x = 0.3 * smash;
+            }
+            break;
+        }
+        break;
+
+      // PERFECTION (Toji) — Weapon/assassin style: spear thrust, chain whip, slash, kick
+      case 'perfection':
+        switch (combo) {
+          case 0: // Spear thrust — one arm extended
+            bg.rShoulder.rotation.x = -2.0 * swing;
+            bg.rElbow.rotation.x = -0.15 * swing; // Very straight
+            bg.spine.rotation.y = -0.2 * swing * facing;
+            bg.chest.rotation.y = -0.15 * swing * facing;
+            if (bg.lHip) bg.lHip.rotation.x = -0.2 * swing;
+            break;
+          case 1: // Chain whip — left arm wide arc
+            bg.lShoulder.rotation.x = -0.8 * swing;
+            bg.lShoulder.rotation.y = 1.2 * swing;
+            bg.lElbow.rotation.x = -0.3 * swing;
+            bg.spine.rotation.y = 0.4 * swing * facing;
+            break;
+          case 2: // Diagonal slash — both arms
+            bg.rShoulder.rotation.x = -1.5 * swing;
+            bg.rShoulder.rotation.z = -0.8 * swing;
+            bg.lShoulder.rotation.x = -0.5 * swing;
+            bg.spine.rotation.y = -0.3 * swing * facing;
+            bg.spine.rotation.z = -0.15 * swing;
+            break;
+          case 3: // Roundhouse kick
+            bg.spine.rotation.y = 0.3 * swing * facing;
+            if (bg.rHip) bg.rHip.rotation.x = -1.5 * swing;
+            if (bg.rKnee) bg.rKnee.rotation.x = 0.8 * swing;
+            bg.lShoulder.rotation.z = 0.4 * swing;
+            bg.rShoulder.rotation.z = -0.4 * swing;
+            break;
+        }
+        break;
+
+      // STRONGEST (Heian Sukuna) — Devastating: cleave, dismantle, fire punch, world slash
+      case 'strongest_of_history':
+      case 'boss_sukuna':
+        switch (combo) {
+          case 0: // Cleave — diagonal arm slash
+            bg.rShoulder.rotation.x = -1.8 * swing;
+            bg.rShoulder.rotation.z = -0.7 * swing;
+            bg.rElbow.rotation.x = -0.4 * swing;
+            bg.spine.rotation.y = -0.3 * swing * facing;
+            bg.spine.rotation.z = -0.1 * swing;
+            break;
+          case 1: // Left arm dismantle
+            bg.lShoulder.rotation.x = -2.0 * swing;
+            bg.lShoulder.rotation.z = 0.5 * swing;
+            bg.lElbow.rotation.x = -0.5 * swing;
+            bg.spine.rotation.y = 0.35 * swing * facing;
+            break;
+          case 2: // Double arm fire punch
+            bg.lShoulder.rotation.x = -1.6 * swing;
+            bg.rShoulder.rotation.x = -1.6 * swing;
+            bg.lElbow.rotation.x = -0.8 * swing;
+            bg.rElbow.rotation.x = -0.8 * swing;
+            bg.spine.rotation.x = 0.15 * swing;
+            bg.chest.rotation.x = 0.1 * swing;
+            break;
+          case 3: // Overhead slam — massive
+            if (p < 0.35) {
+              const wu = p / 0.35;
+              bg.lShoulder.rotation.x = -2.8 * wu;
+              bg.rShoulder.rotation.x = -2.8 * wu;
+              bg.spine.rotation.x = -0.2 * wu;
+            } else {
+              const smash = (p - 0.35) / 0.65;
+              const s = Math.sin(smash * Math.PI);
+              bg.lShoulder.rotation.x = -2.8 + 4.0 * smash;
+              bg.rShoulder.rotation.x = -2.8 + 4.0 * smash;
+              bg.spine.rotation.x = 0.35 * s;
+              if (bg.lKnee) bg.lKnee.rotation.x = 0.3 * s;
+              if (bg.rKnee) bg.rKnee.rotation.x = 0.3 * s;
+            }
+            break;
+        }
+        break;
+
+      // MAHORAGA — Heavy/mechanical: wheel strike, adaptation slam, ground pound, spin
+      case 'boss_mahoraga':
+        switch (combo) {
+          case 0: // Wheel arm strike
+            bg.rShoulder.rotation.x = -1.5 * swing;
+            bg.rShoulder.rotation.y = -0.8 * swing;
+            bg.rElbow.rotation.x = -1.0 * swing;
+            bg.spine.rotation.y = -0.25 * swing * facing;
+            break;
+          case 1: // Left sweeping grab
+            bg.lShoulder.rotation.x = -1.2 * swing;
+            bg.lShoulder.rotation.y = 1.0 * swing;
+            bg.lElbow.rotation.x = -0.3 * swing;
+            bg.spine.rotation.y = 0.4 * swing * facing;
+            break;
+          case 2: // Ground pound — both fists
+            if (p < 0.4) {
+              const wu = p / 0.4;
+              bg.lShoulder.rotation.x = -2.5 * wu;
+              bg.rShoulder.rotation.x = -2.5 * wu;
+            } else {
+              const smash = (p - 0.4) / 0.6;
+              bg.lShoulder.rotation.x = -2.5 + 3.5 * smash;
+              bg.rShoulder.rotation.x = -2.5 + 3.5 * smash;
+              bg.spine.rotation.x = 0.4 * smash;
+            }
+            break;
+          case 3: // Full body spin attack
+            bg.spine.rotation.y = p * Math.PI * 2 * facing;
+            bg.lShoulder.rotation.z = 1.2 * swing;
+            bg.rShoulder.rotation.z = -1.2 * swing;
+            break;
+        }
+        break;
+
+      // Default — basic alternating punches
+      default:
+        if (combo % 2 === 0) {
+          bg.rShoulder.rotation.x = -1.8 * swing;
+          bg.rElbow.rotation.x = -0.8 * swing;
+          bg.spine.rotation.y = -0.3 * swing * facing;
+        } else {
+          bg.lShoulder.rotation.x = -1.8 * swing;
+          bg.lElbow.rotation.x = -0.8 * swing;
+          bg.spine.rotation.y = 0.3 * swing * facing;
+        }
+        bg.chest.rotation.y = bg.spine.rotation.y * 0.6;
+        bg.hips.rotation.y = -bg.spine.rotation.y * 0.3;
+        if (bg.lHip) bg.lHip.rotation.x = -0.15 * swing;
+        break;
+    }
+  }
+
+  /* =========================================================
      ANIMATION SYSTEM — Procedural bone animation
      ========================================================= */
   function updateBones(model, dt) {
@@ -881,22 +1228,14 @@ const Renderer3D = (() => {
       if (bg.head) bg.head.rotation.x = 0.15;
     }
 
-    // M1 attack
+    // M1 attack — per-character unique fighting style
     if (action === 'm1' && ap > 0) {
       const p = 1 - ap;
       const swing = Math.sin(p * Math.PI);
+      const charId = model.charDef ? model.charDef.id : '';
+      const combo = st.m1Combo || 0;
 
-      bg.rShoulder.rotation.x = -1.8 * swing;
-      bg.rShoulder.rotation.z = -0.2 * swing;
-      bg.rElbow.rotation.x = -0.8 * swing;
-
-      bg.spine.rotation.y = -0.3 * swing * facing;
-      bg.chest.rotation.y = -0.2 * swing * facing;
-      bg.hips.rotation.y = 0.1 * swing * facing;
-
-      // Step forward with leg
-      if (bg.lHip) bg.lHip.rotation.x = -0.2 * swing;
-      if (bg.rHip) bg.rHip.rotation.x = 0.1 * swing;
+      animateM1(bg, charId, combo, p, swing, facing);
     }
 
     // Ability move
@@ -1019,6 +1358,7 @@ const Renderer3D = (() => {
     model.animState.hitFlash = fighter.hitFlash;
     model.animState.isBoss = fighter.isBoss;
     model.animState.moving = Math.abs(fighter.vx) > 0.5;
+    model.animState.m1Combo = fighter.m1Combo || 0;
 
     if (fighter.isBoss) {
       const bossScale = fighter.scale || 1.4;
@@ -1112,6 +1452,15 @@ const Renderer3D = (() => {
     const model = createHumanoid(charDef, scale);
     models[key] = model;
     scene.add(model.group);
+
+    // Try loading photo texture onto the procedural model
+    loadCharacterPhoto(charDef.id).then(tex => {
+      if (tex) {
+        applyPhotoTexture(model, tex);
+        console.log(`[Renderer3D] Applied photo texture for "${charDef.id}"`);
+      }
+    });
+
     return model;
   }
 

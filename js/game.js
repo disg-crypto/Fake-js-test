@@ -286,6 +286,7 @@ function startGame() {
   }
 
   updateMoveSlots(state.player);
+  buildCharInfoHud(state.player);
 
   // Screen switch
   DOM.screenSelect.classList.remove('active');
@@ -374,6 +375,9 @@ function updateHUD() {
   DOM.cdAwaken.textContent = canAwaken ? 'READY' : '';
   DOM.cdAwaken.classList.toggle('active', !canAwaken);
   DOM.slotAwaken.classList.toggle('on-cooldown', !canAwaken);
+
+  // In-game character info dropdown
+  updateCharInfoHud();
 }
 
 function updateMoveSlots(fighter) {
@@ -381,6 +385,102 @@ function updateMoveSlots(fighter) {
     if (DOM.moveSlots[i]) DOM.moveSlots[i].name.textContent = m.name;
   });
   DOM.moveRName.textContent = fighter.currentSpecial.name;
+}
+
+/* =========================================================
+   IN-GAME CHARACTER INFO DROPDOWN
+   Shows all moves, damage, types, cooldowns in real-time.
+   ========================================================= */
+const charInfoHud = document.getElementById('char-info-hud');
+const cihToggle   = document.getElementById('cih-toggle');
+const cihBody     = document.getElementById('cih-body');
+const cihMovesList = document.getElementById('cih-moves-list');
+const cihSpecialRow = document.getElementById('cih-special-row');
+const cihAwakenInfo = document.getElementById('cih-awaken-info');
+const cihCharIcon  = document.getElementById('cih-char-icon');
+const cihCharName  = document.getElementById('cih-char-name');
+
+if (cihToggle) {
+  cihToggle.addEventListener('click', () => {
+    charInfoHud.classList.toggle('open');
+  });
+}
+
+function buildCharInfoHud(fighter) {
+  if (!charInfoHud || !fighter) return;
+  charInfoHud.classList.remove('hidden');
+
+  cihCharIcon.textContent = fighter.def.icon;
+  cihCharName.textContent = fighter.currentName;
+
+  // Build move rows
+  cihMovesList.innerHTML = '';
+  fighter.currentMoves.forEach((m, i) => {
+    const row = document.createElement('div');
+    row.className = 'cih-move-row';
+    row.dataset.idx = i;
+    row.innerHTML = `
+      <span class="cih-move-key">${i + 1}</span>
+      <span class="cih-move-name">${m.name}</span>
+      <span class="cih-move-type ${m.type || 'melee'}">${m.type || 'melee'}</span>
+      <span class="cih-move-dmg">${m.damage || 0}</span>
+      <span class="cih-move-cd" data-cd="${i}">-</span>
+    `;
+    cihMovesList.appendChild(row);
+  });
+
+  // Special
+  const sp = fighter.currentSpecial;
+  cihSpecialRow.innerHTML = `
+    <span class="cih-move-key">R</span>
+    <span class="cih-move-name">${sp.name}</span>
+    <span class="cih-move-type ${sp.type || 'ultimate'}">${sp.type || 'ultimate'}</span>
+    <span class="cih-move-dmg">${sp.damage || 0}</span>
+    <span class="cih-move-cd" data-cd="special">-</span>
+  `;
+
+  // Awakening info
+  if (fighter.def.awakening) {
+    cihAwakenInfo.textContent = fighter.def.awakening.name + ' — ' +
+      fighter.def.awakening.moves.map(m => m.name).join(', ');
+  } else {
+    cihAwakenInfo.textContent = 'N/A';
+  }
+}
+
+function updateCharInfoHud() {
+  if (!charInfoHud || !state.player) return;
+
+  const p = state.player;
+
+  // Update cooldown numbers
+  p.cooldowns.forEach((cd, i) => {
+    const cdEl = cihMovesList.querySelector(`[data-cd="${i}"]`);
+    const row = cihMovesList.querySelector(`[data-idx="${i}"]`);
+    if (cdEl) {
+      cdEl.textContent = cd > 0 ? Math.ceil(cd) + 's' : 'RDY';
+      cdEl.style.color = cd > 0 ? '#ff6b6b' : '#69db7c';
+    }
+    if (row) row.classList.toggle('on-cd', cd > 0);
+  });
+
+  // Special cooldown
+  const spCdEl = cihSpecialRow.querySelector('[data-cd="special"]');
+  if (spCdEl) {
+    if (p.ult < 100) {
+      spCdEl.textContent = Math.floor(p.ult) + '%';
+      spCdEl.style.color = '#888';
+    } else if (p.specialCd > 0) {
+      spCdEl.textContent = Math.ceil(p.specialCd) + 's';
+      spCdEl.style.color = '#ff6b6b';
+    } else {
+      spCdEl.textContent = 'RDY';
+      spCdEl.style.color = '#ffd600';
+    }
+  }
+
+  // Update name if awakened
+  cihCharName.textContent = p.currentName;
 }
 
 /* =========================================================
@@ -475,8 +575,10 @@ function doMove(attacker, defender, moveIndex) {
   const dmg = defender.takeDamage(move.damage);
   attacker.addUlt(move.damage * 0.25);
 
-  // Move VFX
-  VFX.moveHit(move.type, defender.x, defender.y, attacker.color, move.damage);
+  // Move VFX — try character-specific first, fall back to generic
+  if (!VFX.charMoveHit(attacker.def.id, moveIndex, defender.x, defender.y)) {
+    VFX.moveHit(move.type, defender.x, defender.y, attacker.color, move.damage);
+  }
 
   if (move.type === 'counter') {
     defender.stunTimer = 1.5;
@@ -1055,6 +1157,7 @@ DOM.btnBack.addEventListener('click', () => {
   cancelAnimationFrame(state.frame);
   state.running = false;
   if (typeof Renderer3D !== 'undefined') Renderer3D.cleanup();
+  if (charInfoHud) { charInfoHud.classList.add('hidden'); charInfoHud.classList.remove('open'); }
   DOM.screenGame.classList.remove('active');
   DOM.screenSelect.classList.add('active');
   DOM.btnPlay.disabled = false;
