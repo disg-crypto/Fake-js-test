@@ -833,6 +833,90 @@ const Renderer3D = (() => {
         return base;
       }
 
+      case 'kashimo': {
+        // Kashimo — short spiky silver-white hair
+        const base = new THREE.SphereGeometry(0.14, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55);
+        base.scale(1.08, 1.2, 1.06);
+        base.translate(0, 0.17, 0);
+        const pos = base.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const y = pos.getY(i);
+          if (y > 0.22) {
+            pos.setY(i, y + Math.random() * 0.035);
+            pos.setX(i, pos.getX(i) + (Math.random() - 0.5) * 0.02);
+          }
+        }
+        base.computeVertexNormals();
+        return base;
+      }
+
+      case 'takaba': {
+        // Takaba — messy medium black hair
+        const base = new THREE.SphereGeometry(0.14, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.65);
+        base.scale(1.1, 1.15, 1.1);
+        base.translate(0, 0.16, -0.01);
+        const pos = base.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const y = pos.getY(i);
+          if (y > 0.2) {
+            pos.setX(i, pos.getX(i) + (Math.random() - 0.5) * 0.04);
+            pos.setZ(i, pos.getZ(i) + (Math.random() - 0.5) * 0.04);
+          }
+        }
+        base.computeVertexNormals();
+        return base;
+      }
+
+      case 'yuta': {
+        // Yuta — medium-length dark hair, slightly messy
+        const base = new THREE.SphereGeometry(0.14, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.63);
+        base.scale(1.08, 1.18, 1.1);
+        base.translate(0, 0.17, -0.01);
+        const pos = base.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const y = pos.getY(i);
+          if (y > 0.23) {
+            pos.setY(i, y + Math.random() * 0.03);
+          }
+        }
+        base.computeVertexNormals();
+        return base;
+      }
+
+      case 'maki': {
+        // Maki — tied-back dark green hair (tight, pulled back)
+        const base = new THREE.SphereGeometry(0.14, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.52);
+        base.scale(1.04, 1.08, 1.12);
+        base.translate(0, 0.17, -0.02);
+        return base;
+      }
+
+      case 'choso': {
+        // Choso — twin tails / tied dark hair with volume on top
+        const base = new THREE.SphereGeometry(0.14, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        base.scale(1.1, 1.22, 1.08);
+        base.translate(0, 0.17, 0);
+        const pos = base.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const y = pos.getY(i);
+          const z = pos.getZ(i);
+          if (y > 0.18 && z < -0.05) {
+            pos.setZ(i, z - 0.06);
+            pos.setY(i, y - 0.03);
+          }
+        }
+        base.computeVertexNormals();
+        return base;
+      }
+
+      case 'naoya': {
+        // Naoya — slicked back blonde-brown hair
+        const base = new THREE.SphereGeometry(0.14, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.54);
+        base.scale(1.06, 1.14, 1.15);
+        base.translate(0, 0.17, -0.02);
+        return base;
+      }
+
       default: {
         // Default — medium-length with slight volume
         const base = new THREE.SphereGeometry(0.14, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.62);
@@ -854,6 +938,12 @@ const Renderer3D = (() => {
       hakari: 0xffcc00,
       perfection: 0x1a1a1a,
       strongest_of_history: 0x880000,
+      kashimo: 0xccddff,           // Kashimo — silver-white
+      takaba: 0x2a2a2a,            // Takaba — dark messy
+      yuta: 0x1a1a2e,              // Yuta — dark
+      maki: 0x1a3a1a,              // Maki — dark green-black
+      choso: 0x2a1a1a,             // Choso — dark brown/black
+      naoya: 0x886644,             // Naoya — light brown
       boss_sukuna: 0x660000,
       boss_gojo: 0xddddff,
       boss_mahoraga: 0x2a4a2a
@@ -868,6 +958,12 @@ const Renderer3D = (() => {
       ten_shadows: 0x88ff44,
       hakari: 0xffaa00,
       perfection: 0xff8800,
+      kashimo: 0x00e5ff,
+      takaba: 0xff6f91,
+      yuta: 0xb388ff,
+      maki: 0x2ed573,
+      choso: 0xe03131,
+      naoya: 0x20c997,
       strongest_of_history: 0xff0000,
       boss_sukuna: 0xff0000,
       boss_gojo: 0x00ccff,
@@ -1138,6 +1234,235 @@ const Renderer3D = (() => {
         }
         break;
 
+      // KASHIMO — Lightning strikes: palm zap, thunder jab, charged hook, lightning uppercut
+      case 'kashimo':
+        switch (combo) {
+          case 0: // Palm zap — open hand thrust with electric snap
+            bg.rShoulder.rotation.x = -1.6 * swing;
+            bg.rElbow.rotation.x = -0.2 * swing;
+            bg.spine.rotation.y = -0.2 * swing * facing;
+            if (bg.head) bg.head.rotation.y = -0.1 * swing * facing;
+            break;
+          case 1: // Thunder jab — fast left straight
+            bg.lShoulder.rotation.x = -1.9 * swing;
+            bg.lElbow.rotation.x = -0.3 * swing;
+            bg.spine.rotation.y = 0.3 * swing * facing;
+            bg.chest.rotation.y = 0.15 * swing * facing;
+            break;
+          case 2: // Charged hook — wide electrified arc
+            bg.rShoulder.rotation.x = -1.3 * swing;
+            bg.rShoulder.rotation.y = -0.9 * swing;
+            bg.rElbow.rotation.x = -1.3 * swing;
+            bg.spine.rotation.y = -0.4 * swing * facing;
+            bg.hips.rotation.y = -0.2 * swing * facing;
+            break;
+          case 3: // Lightning uppercut — explosive rising strike
+            if (p < 0.35) {
+              const crouch = p / 0.35;
+              bg.spine.rotation.x = 0.2 * crouch;
+              if (bg.lKnee) bg.lKnee.rotation.x = 0.35 * crouch;
+              if (bg.rKnee) bg.rKnee.rotation.x = 0.35 * crouch;
+            } else {
+              const rise = (p - 0.35) / 0.65;
+              bg.rShoulder.rotation.x = -2.4 * Math.sin(rise * Math.PI);
+              bg.rShoulder.rotation.z = -0.3 * rise;
+              bg.spine.rotation.x = -0.25 * rise;
+              if (bg.lHip) bg.lHip.rotation.x = -0.2 * rise;
+            }
+            break;
+        }
+        break;
+
+      // TAKABA — Comedian: slap, pie throw, pratfall kick, comedy chop
+      case 'takaba':
+        switch (combo) {
+          case 0: // Goofy slap — wide open hand
+            bg.rShoulder.rotation.x = -1.2 * swing;
+            bg.rShoulder.rotation.y = -0.7 * swing;
+            bg.rElbow.rotation.x = -0.4 * swing;
+            bg.spine.rotation.y = -0.3 * swing * facing;
+            if (bg.head) bg.head.rotation.z = 0.1 * swing;
+            break;
+          case 1: // Pie throw — exaggerated wind-up
+            bg.lShoulder.rotation.x = -1.5 * swing;
+            bg.lShoulder.rotation.z = 0.5 * swing;
+            bg.lElbow.rotation.x = -0.6 * swing;
+            bg.spine.rotation.y = 0.25 * swing * facing;
+            bg.spine.rotation.z = 0.1 * swing;
+            break;
+          case 2: // Pratfall kick — stumble into attack
+            bg.spine.rotation.x = 0.2 * swing;
+            bg.spine.rotation.z = -0.15 * swing;
+            if (bg.rHip) bg.rHip.rotation.x = -1.3 * swing;
+            if (bg.rKnee) bg.rKnee.rotation.x = 0.6 * swing;
+            bg.lShoulder.rotation.z = 0.5 * swing;
+            bg.rShoulder.rotation.z = -0.5 * swing;
+            break;
+          case 3: // Comedy chop — karate chop with flair
+            if (p < 0.45) {
+              const wu = p / 0.45;
+              bg.rShoulder.rotation.x = -2.2 * wu;
+              bg.rShoulder.rotation.z = -0.5 * wu;
+              bg.spine.rotation.z = 0.1 * wu;
+            } else {
+              const chop = (p - 0.45) / 0.55;
+              bg.rShoulder.rotation.x = -2.2 + 3.0 * chop;
+              bg.rShoulder.rotation.z = -0.5 + 0.5 * chop;
+              bg.spine.rotation.x = 0.2 * chop;
+            }
+            break;
+        }
+        break;
+
+      // YUTA — Rika-assisted: cursed punch, rika claw, copy slash, spirit barrage
+      case 'yuta':
+        switch (combo) {
+          case 0: // Cursed punch — right fist with energy
+            bg.rShoulder.rotation.x = -1.7 * swing;
+            bg.rElbow.rotation.x = -0.6 * swing;
+            bg.spine.rotation.y = -0.25 * swing * facing;
+            bg.chest.rotation.y = -0.15 * swing * facing;
+            break;
+          case 1: // Rika claw — left arm extends with spectral reach
+            bg.lShoulder.rotation.x = -2.0 * swing;
+            bg.lShoulder.rotation.z = 0.4 * swing;
+            bg.lElbow.rotation.x = -0.3 * swing;
+            bg.spine.rotation.y = 0.3 * swing * facing;
+            break;
+          case 2: // Copy slash — sword-style diagonal
+            bg.rShoulder.rotation.x = -1.6 * swing;
+            bg.rShoulder.rotation.z = -0.7 * swing;
+            bg.lShoulder.rotation.x = -0.8 * swing;
+            bg.spine.rotation.y = -0.35 * swing * facing;
+            bg.spine.rotation.z = -0.1 * swing;
+            break;
+          case 3: // Spirit barrage — both arms forward, rika blast
+            bg.lShoulder.rotation.x = -1.8 * swing;
+            bg.rShoulder.rotation.x = -1.8 * swing;
+            bg.lElbow.rotation.x = -0.3 * swing;
+            bg.rElbow.rotation.x = -0.3 * swing;
+            bg.spine.rotation.x = 0.15 * swing;
+            bg.chest.rotation.x = 0.1 * swing;
+            break;
+        }
+        break;
+
+      // MAKI — Weapon master: spear thrust, staff sweep, overhead strike, spinning slash
+      case 'maki':
+        switch (combo) {
+          case 0: // Spear thrust — one arm forward lunge
+            bg.rShoulder.rotation.x = -2.0 * swing;
+            bg.rElbow.rotation.x = -0.15 * swing;
+            bg.lShoulder.rotation.x = -0.6 * swing;
+            bg.spine.rotation.y = -0.2 * swing * facing;
+            if (bg.lHip) bg.lHip.rotation.x = -0.25 * swing;
+            break;
+          case 1: // Staff sweep — low horizontal swing
+            bg.lShoulder.rotation.x = -0.8 * swing;
+            bg.lShoulder.rotation.y = 1.0 * swing;
+            bg.rShoulder.rotation.x = -0.8 * swing;
+            bg.rShoulder.rotation.y = -0.5 * swing;
+            bg.spine.rotation.y = 0.4 * swing * facing;
+            bg.spine.rotation.x = 0.15 * swing;
+            break;
+          case 2: // Overhead strike — weapon slam
+            if (p < 0.45) {
+              const wu = p / 0.45;
+              bg.rShoulder.rotation.x = -2.6 * wu;
+              bg.lShoulder.rotation.x = -2.2 * wu;
+              if (bg.head) bg.head.rotation.x = -0.15 * wu;
+            } else {
+              const strike = (p - 0.45) / 0.55;
+              bg.rShoulder.rotation.x = -2.6 + 3.6 * strike;
+              bg.lShoulder.rotation.x = -2.2 + 3.0 * strike;
+              bg.spine.rotation.x = 0.25 * strike;
+            }
+            break;
+          case 3: // Spinning slash — full body rotation
+            bg.spine.rotation.y = p * Math.PI * 1.5 * facing;
+            bg.rShoulder.rotation.x = -1.4 * swing;
+            bg.rShoulder.rotation.z = -0.6 * swing;
+            bg.lShoulder.rotation.z = 0.3 * swing;
+            break;
+        }
+        break;
+
+      // CHOSO — Blood manipulation: blood punch, piercing blood, supernova, blood edge
+      case 'choso':
+        switch (combo) {
+          case 0: // Blood punch — straightforward right
+            bg.rShoulder.rotation.x = -1.8 * swing;
+            bg.rElbow.rotation.x = -0.5 * swing;
+            bg.spine.rotation.y = -0.3 * swing * facing;
+            break;
+          case 1: // Piercing blood — finger point shot
+            bg.lShoulder.rotation.x = -1.5 * swing;
+            bg.lElbow.rotation.x = -0.2 * swing;
+            bg.spine.rotation.y = 0.2 * swing * facing;
+            if (bg.head) bg.head.rotation.y = 0.1 * swing * facing;
+            break;
+          case 2: // Blood wave — both arms outstretched
+            bg.lShoulder.rotation.x = -1.4 * swing;
+            bg.rShoulder.rotation.x = -1.4 * swing;
+            bg.lShoulder.rotation.z = 0.6 * swing;
+            bg.rShoulder.rotation.z = -0.6 * swing;
+            bg.spine.rotation.x = 0.1 * swing;
+            break;
+          case 3: // Supernova — compressed blood explosion
+            if (p < 0.4) {
+              const charge = p / 0.4;
+              bg.lShoulder.rotation.x = -1.0 * charge;
+              bg.rShoulder.rotation.x = -1.0 * charge;
+              bg.lElbow.rotation.x = -1.5 * charge;
+              bg.rElbow.rotation.x = -1.5 * charge;
+              bg.spine.rotation.x = 0.1 * charge;
+            } else {
+              const burst = (p - 0.4) / 0.6;
+              bg.lShoulder.rotation.x = -1.0 - 0.8 * burst;
+              bg.rShoulder.rotation.x = -1.0 - 0.8 * burst;
+              bg.lShoulder.rotation.z = 0.8 * burst;
+              bg.rShoulder.rotation.z = -0.8 * burst;
+              bg.lElbow.rotation.x = -1.5 + 1.2 * burst;
+              bg.rElbow.rotation.x = -1.5 + 1.2 * burst;
+            }
+            break;
+        }
+        break;
+
+      // NAOYA — Speed demon: speed jab, afterimage cross, projection kick, mach punch
+      case 'naoya':
+        switch (combo) {
+          case 0: // Speed jab — barely visible quick strike
+            bg.rShoulder.rotation.x = -2.0 * swing;
+            bg.rElbow.rotation.x = -0.2 * swing;
+            bg.spine.rotation.y = -0.15 * swing * facing;
+            break;
+          case 1: // Afterimage cross — left with lean
+            bg.lShoulder.rotation.x = -2.1 * swing;
+            bg.lElbow.rotation.x = -0.3 * swing;
+            bg.spine.rotation.y = 0.35 * swing * facing;
+            bg.spine.rotation.z = 0.1 * swing;
+            bg.chest.rotation.y = 0.2 * swing * facing;
+            break;
+          case 2: // Projection kick — high speed roundhouse
+            bg.spine.rotation.y = 0.25 * swing * facing;
+            if (bg.rHip) bg.rHip.rotation.x = -1.6 * swing;
+            if (bg.rKnee) bg.rKnee.rotation.x = 0.9 * swing;
+            bg.lShoulder.rotation.z = 0.3 * swing;
+            bg.rShoulder.rotation.z = -0.3 * swing;
+            break;
+          case 3: // Mach punch — blinding speed combo finisher
+            const mp = Math.sin(p * Math.PI);
+            bg.rShoulder.rotation.x = -2.2 * mp;
+            bg.rElbow.rotation.x = -0.15 * mp;
+            bg.spine.rotation.y = -0.4 * mp * facing;
+            bg.chest.rotation.y = -0.25 * mp * facing;
+            bg.hips.rotation.y = -0.15 * mp * facing;
+            if (bg.lHip) bg.lHip.rotation.x = -0.3 * mp;
+            break;
+        }
+        break;
+
       // Default — basic alternating punches
       default:
         if (combo % 2 === 0) {
@@ -1152,6 +1477,128 @@ const Renderer3D = (() => {
         bg.chest.rotation.y = bg.spine.rotation.y * 0.6;
         bg.hips.rotation.y = -bg.spine.rotation.y * 0.3;
         if (bg.lHip) bg.lHip.rotation.x = -0.15 * swing;
+        break;
+    }
+  }
+
+  /* =========================================================
+     PER-CHARACTER ABILITY ANIMATIONS
+     Unique poses for move 1-4 usage.
+     ========================================================= */
+  function animateAbility(bg, charId, p, swing, facing) {
+    switch (charId) {
+      case 'vessel': // Brawler — lean forward and thrust
+        bg.lShoulder.rotation.x = -1.5 * swing;
+        bg.rShoulder.rotation.x = -1.5 * swing;
+        bg.lElbow.rotation.x = -0.5 * swing;
+        bg.rElbow.rotation.x = -0.5 * swing;
+        bg.spine.rotation.x = 0.15 * swing;
+        if (bg.lHip) bg.lHip.rotation.x = -0.2 * swing;
+        break;
+
+      case 'honored_one': // Gojo — arms extended, energy gather
+      case 'boss_gojo':
+        bg.lShoulder.rotation.x = -1.2 * swing;
+        bg.rShoulder.rotation.x = -1.2 * swing;
+        bg.lShoulder.rotation.z = 0.5 * swing;
+        bg.rShoulder.rotation.z = -0.5 * swing;
+        bg.lElbow.rotation.x = -0.2 * swing;
+        bg.rElbow.rotation.x = -0.2 * swing;
+        bg.spine.rotation.x = -0.1 * swing;
+        if (bg.head) bg.head.rotation.x = -0.15 * swing;
+        break;
+
+      case 'ten_shadows': // Shadow summon — crouched, arms down
+        bg.spine.rotation.x = 0.2 * swing;
+        bg.lShoulder.rotation.x = 0.3 * swing;
+        bg.rShoulder.rotation.x = 0.3 * swing;
+        bg.lShoulder.rotation.z = 0.4 * swing;
+        bg.rShoulder.rotation.z = -0.4 * swing;
+        if (bg.lKnee) bg.lKnee.rotation.x = 0.2 * swing;
+        if (bg.rKnee) bg.rKnee.rotation.x = 0.2 * swing;
+        break;
+
+      case 'hakari': // Gambler — wind up and slam
+        if (p < 0.5) {
+          const wu = p / 0.5;
+          bg.rShoulder.rotation.x = -2.0 * wu;
+          bg.rShoulder.rotation.z = -0.3 * wu;
+          bg.spine.rotation.x = -0.1 * wu;
+        } else {
+          const rel = (p - 0.5) / 0.5;
+          bg.rShoulder.rotation.x = -2.0 + 3.0 * rel;
+          bg.spine.rotation.x = 0.2 * rel;
+        }
+        break;
+
+      case 'perfection': // Toji — weapon thrust
+        bg.rShoulder.rotation.x = -2.0 * swing;
+        bg.rElbow.rotation.x = -0.1 * swing;
+        bg.lShoulder.rotation.x = -0.3 * swing;
+        bg.spine.rotation.y = -0.2 * swing * facing;
+        if (bg.lHip) bg.lHip.rotation.x = -0.25 * swing;
+        break;
+
+      case 'kashimo': // Lightning discharge — arms spread, electric
+        bg.lShoulder.rotation.z = 1.0 * swing;
+        bg.rShoulder.rotation.z = -1.0 * swing;
+        bg.lElbow.rotation.x = -0.8 * swing;
+        bg.rElbow.rotation.x = -0.8 * swing;
+        bg.spine.rotation.x = -0.1 * swing;
+        bg.chest.rotation.x = 0.05 * Math.sin(p * Math.PI * 4);
+        if (bg.head) bg.head.rotation.x = -0.15 * swing;
+        break;
+
+      case 'takaba': // Comedian — goofy wind-up slap
+        bg.rShoulder.rotation.x = -0.8 * swing;
+        bg.rShoulder.rotation.y = -0.8 * swing;
+        bg.rElbow.rotation.x = -0.5 * swing;
+        bg.spine.rotation.y = -0.3 * swing * facing;
+        bg.hips.rotation.z = 0.05 * Math.sin(p * Math.PI * 3);
+        break;
+
+      case 'yuta': // Rika manifest — one arm forward, one reaching back
+        bg.rShoulder.rotation.x = -1.8 * swing;
+        bg.rElbow.rotation.x = -0.3 * swing;
+        bg.lShoulder.rotation.x = 0.5 * swing;
+        bg.lShoulder.rotation.z = 0.6 * swing;
+        bg.spine.rotation.y = -0.15 * swing * facing;
+        break;
+
+      case 'maki': // Weapon swing — wide horizontal arc
+        bg.rShoulder.rotation.x = -1.0 * swing;
+        bg.rShoulder.rotation.y = -1.2 * swing;
+        bg.rElbow.rotation.x = -0.3 * swing;
+        bg.lShoulder.rotation.x = -0.5 * swing;
+        bg.spine.rotation.y = -0.35 * swing * facing;
+        bg.hips.rotation.y = -0.15 * swing * facing;
+        break;
+
+      case 'choso': // Blood manipulation — arms outstretched, fingers spread
+        bg.lShoulder.rotation.x = -1.4 * swing;
+        bg.rShoulder.rotation.x = -1.4 * swing;
+        bg.lShoulder.rotation.z = 0.3 * swing;
+        bg.rShoulder.rotation.z = -0.3 * swing;
+        bg.spine.rotation.x = -0.15 * swing;
+        bg.chest.rotation.x = 0.1 * swing;
+        break;
+
+      case 'naoya': // Speed blitz — leaning far forward, sprinting pose
+        bg.spine.rotation.x = 0.3 * swing;
+        bg.chest.rotation.x = 0.15 * swing;
+        bg.lShoulder.rotation.x = 0.5 * swing;
+        bg.rShoulder.rotation.x = -1.0 * swing;
+        if (bg.lHip) bg.lHip.rotation.x = -0.5 * swing;
+        if (bg.rHip) bg.rHip.rotation.x = 0.3 * swing;
+        break;
+
+      default: // Generic
+        bg.lShoulder.rotation.x = -1.5 * swing;
+        bg.rShoulder.rotation.x = -1.5 * swing;
+        bg.lElbow.rotation.x = -0.5 * swing;
+        bg.rElbow.rotation.x = -0.5 * swing;
+        bg.spine.rotation.x = -0.2 * swing;
+        bg.chest.rotation.x = 0.1 * swing;
         break;
     }
   }
@@ -1238,17 +1685,12 @@ const Renderer3D = (() => {
       animateM1(bg, charId, combo, p, swing, facing);
     }
 
-    // Ability move
+    // Ability move — character-specific ability poses
     if (action === 'move' && ap > 0) {
       const p = 1 - ap;
       const swing = Math.sin(p * Math.PI);
-
-      bg.lShoulder.rotation.x = -1.5 * swing;
-      bg.rShoulder.rotation.x = -1.5 * swing;
-      bg.lElbow.rotation.x = -0.5 * swing;
-      bg.rElbow.rotation.x = -0.5 * swing;
-      bg.spine.rotation.x = -0.2 * swing;
-      bg.chest.rotation.x = 0.1 * swing;
+      const charId = model.charDef ? model.charDef.id : '';
+      animateAbility(bg, charId, p, swing, facing);
     }
 
     // Special move
