@@ -471,6 +471,566 @@ const CHARACTERS = [
   },
 
   {
+    id: 'kashimo',
+    name: 'KASHIMO',
+    subName: 'Hajime Kashimo',
+    icon: '⚡',
+    badge: null,
+    hp: 260,
+    color: '#00e5ff',
+    description: 'Lightning sorcerer from 400 years ago. One-shot potential.',
+    moves: [
+      {
+        name: 'Lightning Discharge',
+        key: '1',
+        damage: 32,
+        cooldown: 6,
+        description: 'Electrifies fists for a shocking melee strike.',
+        type: 'melee'
+      },
+      {
+        name: 'Electrify',
+        key: '2',
+        damage: 28,
+        cooldown: 7,
+        description: 'Charges body with lightning — next hit deals bonus damage.',
+        type: 'utility'
+      },
+      {
+        name: 'Thunder Strike',
+        key: '3',
+        damage: 50,
+        cooldown: 12,
+        description: 'Calls down a bolt of lightning on the enemy.',
+        type: 'ranged'
+      },
+      {
+        name: 'Genju Kohasaku',
+        key: '4',
+        damage: 45,
+        cooldown: 10,
+        description: 'Generates electricity between strikes for a guaranteed hit.',
+        type: 'melee'
+      }
+    ],
+    special: {
+      name: 'Mythical Beast Amber',
+      damage: 85,
+      cooldown: 24,
+      description: 'True form — transforms body into pure lightning for one devastating attack.'
+    },
+    awakening: {
+      name: 'True Essence of Lightning',
+      subName: 'Mythical Beast',
+      hpBonus: 0.6,
+      moves: [
+        {
+          name: 'Storm Fist',
+          key: '1',
+          damage: 60,
+          cooldown: 4,
+          type: 'melee'
+        },
+        {
+          name: 'Chain Lightning',
+          key: '2',
+          damage: 55,
+          cooldown: 6,
+          type: 'ranged'
+        },
+        {
+          name: 'Thunderclap',
+          key: '3',
+          damage: 80,
+          cooldown: 10,
+          type: 'aoe'
+        },
+        {
+          name: 'Lightning God',
+          key: '4',
+          damage: 100,
+          cooldown: 16,
+          type: 'aoe'
+        }
+      ],
+      special: {
+        name: 'Final Lightning',
+        damage: 140,
+        cooldown: 0,
+        description: 'Releases all stored electricity in one final blast. Destroys the user.'
+      },
+      duration: 45
+    }
+  },
+
+  {
+    id: 'takaba',
+    name: 'COMEDIAN',
+    subName: 'Fumihiko Takaba',
+    icon: '🤣',
+    badge: null,
+    hp: 300,
+    color: '#ff6f91',
+    description: 'If he thinks it\'s funny, it becomes reality.',
+    moves: [
+      {
+        name: 'Slapstick',
+        key: '1',
+        damage: 20,
+        cooldown: 5,
+        description: 'Slaps opponent with comedic timing — guaranteed knockback.',
+        type: 'melee'
+      },
+      {
+        name: 'Banana Peel',
+        key: '2',
+        damage: 15,
+        cooldown: 8,
+        description: 'Opponent trips and takes stun damage.',
+        type: 'counter'
+      },
+      {
+        name: 'Pie to the Face',
+        key: '3',
+        damage: 25,
+        cooldown: 9,
+        description: 'Launches a cream pie projectile. Hilarious and effective.',
+        type: 'ranged'
+      },
+      {
+        name: 'Comedian\'s Resolve',
+        key: '4',
+        damage: 0,
+        cooldown: 14,
+        description: 'Believes damage is funny — heals 40 HP.',
+        type: 'defense',
+        heal: 40
+      }
+    ],
+    special: {
+      name: 'Showstopper',
+      damage: 60,
+      cooldown: 20,
+      description: 'The ultimate punchline — reality bends to his comedy.'
+    },
+    awakening: {
+      name: 'Stand-Up King',
+      subName: 'Peak Comedy',
+      hpBonus: 0.8,
+      moves: [
+        {
+          name: 'Knock Knock',
+          key: '1',
+          damage: 35,
+          cooldown: 4,
+          type: 'melee'
+        },
+        {
+          name: 'Plot Armor',
+          key: '2',
+          damage: 0,
+          cooldown: 8,
+          type: 'defense'
+        },
+        {
+          name: 'Laugh Track',
+          key: '3',
+          damage: 50,
+          cooldown: 10,
+          type: 'aoe'
+        },
+        {
+          name: 'Comedy Gold',
+          key: '4',
+          damage: 75,
+          cooldown: 14,
+          type: 'melee'
+        }
+      ],
+      special: {
+        name: 'Reality Overwrite',
+        damage: 100,
+        cooldown: 0,
+        description: 'If Takaba thinks it, it happens. No exceptions.'
+      },
+      duration: 50
+    }
+  },
+
+  {
+    id: 'yuta',
+    name: 'COPY',
+    subName: 'Yuta Okkotsu',
+    icon: '💍',
+    badge: 'EA',
+    hp: 320,
+    color: '#b388ff',
+    description: 'Special Grade. Rika grants unlimited cursed energy.',
+    moves: [
+      {
+        name: 'Rika Slash',
+        key: '1',
+        damage: 35,
+        cooldown: 6,
+        description: 'Rika manifests to deliver a cursed sword strike.',
+        type: 'slash'
+      },
+      {
+        name: 'Cursed Speech',
+        key: '2',
+        damage: 20,
+        cooldown: 8,
+        description: 'Copied from Inumaki — commands enemy to stop.',
+        type: 'counter'
+      },
+      {
+        name: 'Reverse Cursed',
+        key: '3',
+        damage: 0,
+        cooldown: 12,
+        description: 'Heals 50 HP using reverse cursed technique.',
+        type: 'defense',
+        heal: 50
+      },
+      {
+        name: 'Copy Technique',
+        key: '4',
+        damage: 45,
+        cooldown: 10,
+        description: 'Copies a random enemy technique for massive damage.',
+        type: 'ranged'
+      }
+    ],
+    special: {
+      name: 'Pure Love: Rika',
+      damage: 80,
+      cooldown: 22,
+      description: 'Fully manifests Rika — devastating close-range barrage.'
+    },
+    awakening: {
+      name: 'Queen of Curses',
+      subName: 'Full Manifestation Rika',
+      hpBonus: 0.65,
+      moves: [
+        {
+          name: 'Rika Claw',
+          key: '1',
+          damage: 60,
+          cooldown: 4,
+          type: 'melee'
+        },
+        {
+          name: 'Copied Domain',
+          key: '2',
+          damage: 70,
+          cooldown: 8,
+          type: 'aoe'
+        },
+        {
+          name: 'Cursed Megaphone',
+          key: '3',
+          damage: 55,
+          cooldown: 7,
+          type: 'ranged'
+        },
+        {
+          name: 'Boundless CE',
+          key: '4',
+          damage: 90,
+          cooldown: 15,
+          type: 'slash'
+        }
+      ],
+      special: {
+        name: 'Jacob\'s Ladder',
+        damage: 130,
+        cooldown: 0,
+        description: 'Channels all of Rika\'s power into an annihilating beam.'
+      },
+      duration: 55
+    }
+  },
+
+  {
+    id: 'maki',
+    name: 'ZENIN',
+    subName: 'Maki Zenin',
+    icon: '🗡️',
+    badge: null,
+    hp: 240,
+    color: '#2ed573',
+    description: 'Zero cursed energy. Enhanced physical senses. Dragon Bone.',
+    moves: [
+      {
+        name: 'Dragon Bone',
+        key: '1',
+        damage: 35,
+        cooldown: 6,
+        description: 'Special grade cursed tool — powerful polearm strike.',
+        type: 'melee'
+      },
+      {
+        name: 'Split Soul Katana',
+        key: '2',
+        damage: 28,
+        cooldown: 7,
+        description: 'Cuts the soul directly — bypasses defenses.',
+        type: 'slash'
+      },
+      {
+        name: 'Playful Cloud',
+        key: '3',
+        damage: 45,
+        cooldown: 11,
+        description: 'Three-section staff deals scaling damage based on power.',
+        type: 'melee'
+      },
+      {
+        name: 'Weapon Throw',
+        key: '4',
+        damage: 22,
+        cooldown: 5,
+        description: 'Hurls a cursed weapon with pinpoint accuracy.',
+        type: 'ranged'
+      }
+    ],
+    special: {
+      name: 'Heavenly Restriction: Zero',
+      damage: 65,
+      cooldown: 22,
+      description: 'Peak physical form — blinding speed multi-hit combo.'
+    },
+    awakening: {
+      name: 'Clan Destroyer',
+      subName: 'Toji-Level Power',
+      hpBonus: 0.5,
+      moves: [
+        {
+          name: 'Dragon Pierce',
+          key: '1',
+          damage: 55,
+          cooldown: 4,
+          type: 'melee'
+        },
+        {
+          name: 'Soul Rend',
+          key: '2',
+          damage: 65,
+          cooldown: 7,
+          type: 'slash'
+        },
+        {
+          name: 'Annihilate',
+          key: '3',
+          damage: 80,
+          cooldown: 12,
+          type: 'aoe'
+        },
+        {
+          name: 'Zen\'in Massacre',
+          key: '4',
+          damage: 95,
+          cooldown: 16,
+          type: 'slash'
+        }
+      ],
+      special: {
+        name: 'True Heavenly Restriction',
+        damage: 120,
+        cooldown: 0,
+        description: 'Surpasses Toji — obliterates everything in her path.'
+      },
+      duration: 50
+    }
+  },
+
+  {
+    id: 'choso',
+    name: 'BLOOD',
+    subName: 'Choso',
+    icon: '🩸',
+    badge: null,
+    hp: 270,
+    color: '#e03131',
+    description: 'Death Painting. Blood manipulation master.',
+    moves: [
+      {
+        name: 'Piercing Blood',
+        key: '1',
+        damage: 38,
+        cooldown: 7,
+        description: 'Fires a high-pressure blood beam at incredible speed.',
+        type: 'ranged'
+      },
+      {
+        name: 'Convergence',
+        key: '2',
+        damage: 25,
+        cooldown: 6,
+        description: 'Compresses blood to maximum density for next attack.',
+        type: 'utility'
+      },
+      {
+        name: 'Supernova',
+        key: '3',
+        damage: 50,
+        cooldown: 12,
+        description: 'Blood orb detonation — AoE explosion.',
+        type: 'aoe'
+      },
+      {
+        name: 'Blood Edge',
+        key: '4',
+        damage: 30,
+        cooldown: 8,
+        description: 'Forms blood into a sharp blade for close combat.',
+        type: 'slash'
+      }
+    ],
+    special: {
+      name: 'Blood Meteorite',
+      damage: 70,
+      cooldown: 22,
+      description: 'Massive compressed blood projectile — devastating on impact.'
+    },
+    awakening: {
+      name: 'Death Painting Unleashed',
+      subName: 'Eldest Brother',
+      hpBonus: 0.7,
+      moves: [
+        {
+          name: 'Crimson Beam',
+          key: '1',
+          damage: 55,
+          cooldown: 5,
+          type: 'ranged'
+        },
+        {
+          name: 'Blood Armor',
+          key: '2',
+          damage: 0,
+          cooldown: 8,
+          type: 'defense'
+        },
+        {
+          name: 'Supernova MAX',
+          key: '3',
+          damage: 85,
+          cooldown: 10,
+          type: 'aoe'
+        },
+        {
+          name: 'Flowing Red Scale',
+          key: '4',
+          damage: 70,
+          cooldown: 12,
+          type: 'melee'
+        }
+      ],
+      special: {
+        name: 'Wing King',
+        damage: 115,
+        cooldown: 0,
+        description: 'Splits blood in all directions — inescapable barrage.'
+      },
+      duration: 55
+    }
+  },
+
+  {
+    id: 'naoya',
+    name: 'PROJECTION',
+    subName: 'Naoya Zenin',
+    icon: '💨',
+    badge: 'EA',
+    hp: 245,
+    color: '#20c997',
+    description: 'Projection Sorcery. Moves in 24fps. Blindingly fast.',
+    moves: [
+      {
+        name: 'Frame Skip',
+        key: '1',
+        damage: 28,
+        cooldown: 5,
+        description: 'Moves faster than the eye can track — instant teleport strike.',
+        type: 'melee'
+      },
+      {
+        name: 'Freeze Frame',
+        key: '2',
+        damage: 20,
+        cooldown: 8,
+        description: 'Touches enemy — freezes them for 1 second if they break the rule.',
+        type: 'counter'
+      },
+      {
+        name: 'Speed Blitz',
+        key: '3',
+        damage: 40,
+        cooldown: 10,
+        description: 'Multi-hit rapid strikes at projection speed.',
+        type: 'melee'
+      },
+      {
+        name: 'Air Frame',
+        key: '4',
+        damage: 32,
+        cooldown: 7,
+        description: 'Creates air pressure frames — ranged shockwave attack.',
+        type: 'ranged'
+      }
+    ],
+    special: {
+      name: 'Cursed Spirit: Worm',
+      damage: 60,
+      cooldown: 20,
+      description: 'Transforms into venomous cursed spirit form — pure speed.'
+    },
+    awakening: {
+      name: 'Vengeful Spirit',
+      subName: 'Cursed Worm',
+      hpBonus: 0.55,
+      moves: [
+        {
+          name: 'Worm Dive',
+          key: '1',
+          damage: 50,
+          cooldown: 4,
+          type: 'melee'
+        },
+        {
+          name: 'Venom Spit',
+          key: '2',
+          damage: 45,
+          cooldown: 6,
+          type: 'ranged'
+        },
+        {
+          name: 'Sonic Boom',
+          key: '3',
+          damage: 70,
+          cooldown: 10,
+          type: 'aoe'
+        },
+        {
+          name: 'Terminal Velocity',
+          key: '4',
+          damage: 85,
+          cooldown: 14,
+          type: 'melee'
+        }
+      ],
+      special: {
+        name: 'Beyond Light Speed',
+        damage: 110,
+        cooldown: 0,
+        description: 'Exceeds the 24fps limit — moves faster than reality.'
+      },
+      duration: 45
+    }
+  },
+
+  {
     id: 'strongest_of_history',
     name: 'STRONGEST',
     subName: 'Heian Sukuna',
