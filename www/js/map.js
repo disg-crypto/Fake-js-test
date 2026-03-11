@@ -116,10 +116,10 @@ function renderShinjukuBg(ctx, W, H, time) {
   }
   ctx.globalAlpha = 1;
 
-  // Far background — city silhouettes
-  drawCityBuildings(ctx, W, H, time, 0.6, '#110820', '#110820');
+  // Far background — city silhouettes (brighter)
+  drawCityBuildings(ctx, W, H, time, 0.6, '#1a1035', '#1a1035');
   // Mid buildings
-  drawCityBuildings(ctx, W, H, time, 0.75, '#18102a', '#18102a', true);
+  drawCityBuildings(ctx, W, H, time, 0.75, '#241840', '#241840', true);
 
   // Station roof/overhang
   const roofY = H * 0.38;
@@ -380,7 +380,7 @@ function drawCityBuildings(ctx, W, H, time, horizFrac, colorA, colorB, mid = fal
     ctx.fillRect(bx, baseY - bh, bw, bh);
 
     // Windows
-    ctx.fillStyle = 'rgba(255,200,100,0.08)';
+    ctx.fillStyle = 'rgba(255,210,120,0.18)';
     for (let wy = baseY - bh + 6; wy < baseY - 6; wy += 10) {
       for (let wx = bx + 4; wx < bx + bw - 6; wx += 9) {
         if ((b + Math.floor(wy / 10)) % 3 !== 0) {

@@ -109,7 +109,7 @@ const Renderer3D = (() => {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.6;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     canvasEl = renderer.domElement;
@@ -132,10 +132,15 @@ const Renderer3D = (() => {
   }
 
   function setupLighting() {
-    const ambient = new THREE.AmbientLight(0x404060, 0.6);
+    // Hemisphere light for natural sky/ground color blending
+    const hemi = new THREE.HemisphereLight(0x6688cc, 0x443344, 0.8);
+    scene.add(hemi);
+    lights.hemi = hemi;
+
+    const ambient = new THREE.AmbientLight(0x606080, 1.0);
     scene.add(ambient);
 
-    const key = new THREE.DirectionalLight(0xffeedd, 1.4);
+    const key = new THREE.DirectionalLight(0xffeedd, 2.0);
     key.position.set(3, 8, 5);
     key.castShadow = true;
     key.shadow.mapSize.width = 1024;
@@ -149,12 +154,12 @@ const Renderer3D = (() => {
     scene.add(key);
     lights.key = key;
 
-    const rim = new THREE.DirectionalLight(0x8888ff, 0.5);
+    const rim = new THREE.DirectionalLight(0x8888ff, 0.8);
     rim.position.set(-2, 4, -4);
     scene.add(rim);
     lights.rim = rim;
 
-    const fill = new THREE.PointLight(0x443355, 0.4, 15);
+    const fill = new THREE.PointLight(0x665577, 0.8, 20);
     fill.position.set(0, 0.5, 4);
     scene.add(fill);
     lights.fill = fill;
@@ -2007,11 +2012,11 @@ const Renderer3D = (() => {
         const pw = (plat.w / W) * 8;
         const platGeo = new THREE.BoxGeometry(pw, 0.08, 1.2);
         const platMat = new THREE.MeshStandardMaterial({
-          color: mapId === 'domain' ? 0x440000 : mapId === 'shibuya' ? 0x2a2a3e : 0x334455,
-          roughness: 0.6,
-          metalness: 0.3,
-          emissive: mapId === 'domain' ? 0x330000 : 0x111122,
-          emissiveIntensity: 0.3
+          color: mapId === 'domain' ? 0x550011 : mapId === 'shibuya' ? 0x3a3a55 : 0x445566,
+          roughness: 0.4,
+          metalness: 0.5,
+          emissive: mapId === 'domain' ? 0x440000 : 0x1a1a33,
+          emissiveIntensity: 0.45
         });
         const platMesh = new THREE.Mesh(platGeo, platMat);
         platMesh.position.set(px, py - 0.04, 0);
@@ -2022,9 +2027,9 @@ const Renderer3D = (() => {
         // Platform edge glow
         const edgeGeo = new THREE.BoxGeometry(pw + 0.05, 0.02, 1.25);
         const edgeMat = new THREE.MeshBasicMaterial({
-          color: mapId === 'domain' ? 0xff2200 : 0x4488ff,
+          color: mapId === 'domain' ? 0xff3300 : mapId === 'shibuya' ? 0xff4488 : 0x55aaff,
           transparent: true,
-          opacity: 0.5
+          opacity: 0.7
         });
         const edge = new THREE.Mesh(edgeGeo, edgeMat);
         edge.position.set(px, py, 0);
@@ -2034,18 +2039,18 @@ const Renderer3D = (() => {
   }
 
   function createShinjukuMap(W, H, gndY, platforms) {
-    // Sky — dark blue gradient via background
-    scene.background = new THREE.Color(0x0a0a1a);
-    scene.fog = new THREE.Fog(0x0a0a2a, 15, 40);
+    // Sky — deep blue-purple night
+    scene.background = new THREE.Color(0x0e0e2a);
+    scene.fog = new THREE.Fog(0x0e0e2a, 20, 55);
 
-    // Ground
+    // Ground — polished station platform
     const groundGeo = new THREE.PlaneGeometry(20, 8);
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x1a1a2e,
-      roughness: 0.8,
-      metalness: 0.2,
-      emissive: 0x0a0a1a,
-      emissiveIntensity: 0.2
+      color: 0x2a2a44,
+      roughness: 0.5,
+      metalness: 0.4,
+      emissive: 0x151530,
+      emissiveIntensity: 0.35
     });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
@@ -2059,7 +2064,7 @@ const Renderer3D = (() => {
     const moon = new THREE.Mesh(moonGeo, moonMat);
     moon.position.set(3, 7, -15);
     mapGroup.add(moon);
-    const moonLight = new THREE.PointLight(0xeeeeff, 0.4, 30);
+    const moonLight = new THREE.PointLight(0xccccff, 1.0, 40);
     moonLight.position.copy(moon.position);
     scene.add(moonLight);
     mapLights.push(moonLight);
@@ -2072,22 +2077,23 @@ const Renderer3D = (() => {
       const bz = -6 - Math.random() * 8;
       const buildGeo = new THREE.BoxGeometry(bw, bh, bw * 0.8);
       const buildMat = new THREE.MeshStandardMaterial({
-        color: 0x1a1a2e,
-        roughness: 0.9,
-        emissive: 0x0a0a1a,
-        emissiveIntensity: 0.1
+        color: 0x252540,
+        roughness: 0.7,
+        metalness: 0.2,
+        emissive: 0x111128,
+        emissiveIntensity: 0.2
       });
       const building = new THREE.Mesh(buildGeo, buildMat);
       building.position.set(bx, bh / 2, bz);
       building.castShadow = true;
       mapGroup.add(building);
 
-      // Window lights (random emissive planes)
+      // Window lights (random emissive planes — brighter)
       const winCount = Math.floor(bh * 2);
       for (let w = 0; w < winCount; w++) {
-        if (Math.random() > 0.4) continue;
-        const winGeo = new THREE.PlaneGeometry(0.08, 0.06);
-        const winColor = Math.random() > 0.5 ? 0xffcc44 : 0x88aaff;
+        if (Math.random() > 0.55) continue;
+        const winGeo = new THREE.PlaneGeometry(0.1, 0.07);
+        const winColor = Math.random() > 0.5 ? 0xffdd66 : 0x99bbff;
         const winMat = new THREE.MeshBasicMaterial({ color: winColor });
         const win = new THREE.Mesh(winGeo, winMat);
         win.position.set(
@@ -2102,23 +2108,33 @@ const Renderer3D = (() => {
     // Station roof overhang
     const roofGeo = new THREE.BoxGeometry(10, 0.15, 3);
     const roofMat = new THREE.MeshStandardMaterial({
-      color: 0x2a2a3e,
-      roughness: 0.7,
-      metalness: 0.3
+      color: 0x3a3a55,
+      roughness: 0.5,
+      metalness: 0.4,
+      emissive: 0x151530,
+      emissiveIntensity: 0.15
     });
     const roof = new THREE.Mesh(roofGeo, roofMat);
     roof.position.set(0, 4.5, -1);
     roof.castShadow = true;
     mapGroup.add(roof);
 
-    // Neon accent lights
+    // Neon accent lights — vibrant and punchy
     const neonColors = [0xff0066, 0x00ffcc, 0xff6600, 0x4488ff];
     neonColors.forEach((c, i) => {
-      const nl = new THREE.PointLight(c, 0.3, 6);
+      const nl = new THREE.PointLight(c, 0.8, 8);
       nl.position.set(-3 + i * 2, 2.5, 1);
       scene.add(nl);
       mapLights.push(nl);
     });
+
+    // Overhead station fluorescent glow
+    const stationLight = new THREE.RectAreaLight !== undefined
+      ? new THREE.PointLight(0xccccff, 0.6, 12)
+      : new THREE.PointLight(0xccccff, 0.6, 12);
+    stationLight.position.set(0, 4.2, 0);
+    scene.add(stationLight);
+    mapLights.push(stationLight);
 
     // Stars (small emissive spheres)
     for (let i = 0; i < 40; i++) {
@@ -2136,8 +2152,8 @@ const Renderer3D = (() => {
   }
 
   function createShibuyaMap(W, H, gndY, platforms) {
-    scene.background = new THREE.Color(0x1a0a0a);
-    scene.fog = new THREE.FogExp2(0x1a0a0a, 0.06);
+    scene.background = new THREE.Color(0x1a0e10);
+    scene.fog = new THREE.FogExp2(0x1a0e10, 0.035);
 
     // Ground with cracks
     const groundGeo = new THREE.PlaneGeometry(20, 8, 20, 10);
@@ -2148,11 +2164,11 @@ const Renderer3D = (() => {
     }
     groundGeo.computeVertexNormals();
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x2a2a2a,
-      roughness: 0.9,
-      metalness: 0.1,
-      emissive: 0x1a0a0a,
-      emissiveIntensity: 0.15
+      color: 0x3a3038,
+      roughness: 0.7,
+      metalness: 0.2,
+      emissive: 0x221018,
+      emissiveIntensity: 0.25
     });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
@@ -2160,11 +2176,17 @@ const Renderer3D = (() => {
     ground.receiveShadow = true;
     mapGroup.add(ground);
 
-    // Red cursed energy sky glow
-    const skyGlow = new THREE.PointLight(0xff2200, 0.8, 25);
+    // Red cursed energy sky glow — much stronger
+    const skyGlow = new THREE.PointLight(0xff3311, 1.5, 35);
     skyGlow.position.set(0, 8, -5);
     scene.add(skyGlow);
     mapLights.push(skyGlow);
+
+    // Additional cursed glow from below
+    const groundGlow = new THREE.PointLight(0xff1100, 0.6, 10);
+    groundGlow.position.set(0, 0.2, 0);
+    scene.add(groundGlow);
+    mapLights.push(groundGlow);
 
     // Buildings (corrupted aesthetic)
     for (let i = 0; i < 10; i++) {
@@ -2175,10 +2197,11 @@ const Renderer3D = (() => {
       const buildGeo = new THREE.BoxGeometry(bw, bh, bw * 0.7);
       const tilt = (Math.random() - 0.5) * 0.05;
       const buildMat = new THREE.MeshStandardMaterial({
-        color: 0x1a1a2a,
-        roughness: 0.85,
-        emissive: 0x220000,
-        emissiveIntensity: 0.15
+        color: 0x2a2035,
+        roughness: 0.7,
+        metalness: 0.15,
+        emissive: 0x330808,
+        emissiveIntensity: 0.25
       });
       const building = new THREE.Mesh(buildGeo, buildMat);
       building.position.set(bx, bh / 2, bz);
@@ -2187,10 +2210,10 @@ const Renderer3D = (() => {
       mapGroup.add(building);
     }
 
-    // Neon signs (red/purple)
+    // Neon signs (red/purple) — brighter
     const shibuyaNeons = [0xff0044, 0xcc00ff, 0xff4400, 0xff0066];
     shibuyaNeons.forEach((c, i) => {
-      const nl = new THREE.PointLight(c, 0.4, 5);
+      const nl = new THREE.PointLight(c, 0.9, 7);
       nl.position.set(-3 + i * 2, 2, 0.5);
       scene.add(nl);
       mapLights.push(nl);
@@ -2219,17 +2242,17 @@ const Renderer3D = (() => {
   }
 
   function createDomainMap(W, H, gndY, platforms) {
-    scene.background = new THREE.Color(0x050005);
-    scene.fog = new THREE.FogExp2(0x0a0005, 0.04);
+    scene.background = new THREE.Color(0x0a0008);
+    scene.fog = new THREE.FogExp2(0x0a0008, 0.025);
 
     // Ground — void with grid lines
     const groundGeo = new THREE.PlaneGeometry(24, 12, 48, 24);
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x0a0005,
-      roughness: 0.95,
-      metalness: 0.0,
-      emissive: 0x110000,
-      emissiveIntensity: 0.1,
+      color: 0x150010,
+      roughness: 0.8,
+      metalness: 0.1,
+      emissive: 0x220000,
+      emissiveIntensity: 0.25,
       wireframe: false
     });
     const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -2241,18 +2264,18 @@ const Renderer3D = (() => {
     // Grid lines
     const gridGeo = new THREE.PlaneGeometry(24, 12, 48, 24);
     const gridMat = new THREE.MeshBasicMaterial({
-      color: 0x440000,
+      color: 0x660011,
       wireframe: true,
       transparent: true,
-      opacity: 0.3
+      opacity: 0.45
     });
     const grid = new THREE.Mesh(gridGeo, gridMat);
     grid.rotation.x = -Math.PI / 2;
     grid.position.y = 0.01;
     mapGroup.add(grid);
 
-    // Central red pulse light
-    const centerLight = new THREE.PointLight(0xff0000, 1.5, 12);
+    // Central red pulse light — intense
+    const centerLight = new THREE.PointLight(0xff0000, 2.5, 18);
     centerLight.position.set(0, 0.3, 0);
     scene.add(centerLight);
     mapLights.push(centerLight);
@@ -2260,12 +2283,18 @@ const Renderer3D = (() => {
 
     // Torii gate
     const toriiMat = new THREE.MeshStandardMaterial({
-      color: 0x880000,
-      roughness: 0.5,
+      color: 0xaa0000,
+      roughness: 0.4,
       metalness: 0.3,
-      emissive: 0x440000,
-      emissiveIntensity: 0.4
+      emissive: 0x660000,
+      emissiveIntensity: 0.6
     });
+
+    // Torii gate backlight
+    const toriiLight = new THREE.PointLight(0xff2200, 1.2, 10);
+    toriiLight.position.set(0, 2, -3.5);
+    scene.add(toriiLight);
+    mapLights.push(toriiLight);
     // Pillars
     const pillarGeo = new THREE.CylinderGeometry(0.08, 0.1, 3, 8);
     const lPillar = new THREE.Mesh(pillarGeo, toriiMat);
