@@ -95,9 +95,9 @@ const Renderer3D = (() => {
     const w = containerEl.clientWidth || window.innerWidth;
     const h = containerEl.clientHeight || window.innerHeight;
 
-    camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000);
-    camera.position.set(0, 3.5, 6);
-    camera.lookAt(0, 1.2, 0);
+    camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+    camera.position.set(0, 4.5, 10);
+    camera.lookAt(0, 1.5, 0);
 
     renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -193,41 +193,46 @@ const Renderer3D = (() => {
      HELPER: Create a detailed head with jaw, brow, nose
      ========================================================= */
   function createDetailedHead() {
-    // Main cranium — elongated sphere with subtle shaping
-    const headGeo = new THREE.SphereGeometry(0.13, 24, 18);
+    // Main cranium — larger, rounder head for better visibility
+    const headGeo = new THREE.SphereGeometry(0.18, 24, 18);
     const posArr = headGeo.attributes.position;
     for (let i = 0; i < posArr.count; i++) {
       let x = posArr.getX(i);
       let y = posArr.getY(i);
       let z = posArr.getZ(i);
 
-      // Elongate vertically
-      y *= 1.18;
+      // Elongate vertically slightly
+      y *= 1.12;
 
       // Flatten back of head slightly
-      if (z < -0.02) z *= 0.9;
+      if (z < -0.02) z *= 0.92;
 
-      // Jaw taper — below center, narrow on sides
-      if (y < 0) {
-        const jawFactor = Math.abs(y) / 0.15;
-        x *= 1 - jawFactor * 0.2;
-        z *= 1 - jawFactor * 0.1;
+      // Jaw taper — narrower chin
+      if (y < -0.02) {
+        const jawFactor = Math.abs(y) / 0.2;
+        x *= 1 - jawFactor * 0.25;
+        z *= 1 - jawFactor * 0.12;
       }
 
-      // Slight brow ridge — push forward above eyes
-      if (y > 0.04 && y < 0.08 && z > 0.08) {
-        z += 0.015;
+      // Cheekbones — wider at mid-face
+      if (y > -0.03 && y < 0.06 && Math.abs(x) > 0.1) {
+        x *= 1.05;
       }
 
-      // Nose bump
-      if (y > -0.03 && y < 0.04 && Math.abs(x) < 0.025 && z > 0.1) {
-        z += 0.02 * (1 - Math.abs(x) / 0.025);
+      // Slight brow ridge
+      if (y > 0.06 && y < 0.11 && z > 0.12) {
+        z += 0.018;
+      }
+
+      // Nose bump — more pronounced
+      if (y > -0.04 && y < 0.05 && Math.abs(x) < 0.03 && z > 0.13) {
+        z += 0.025 * (1 - Math.abs(x) / 0.03);
       }
 
       posArr.setXYZ(i, x, y, z);
     }
     headGeo.computeVertexNormals();
-    headGeo.translate(0, 0.13, 0);
+    headGeo.translate(0, 0.16, 0);
     return headGeo;
   }
 
@@ -307,8 +312,8 @@ const Renderer3D = (() => {
     rootBone.add(hipsBone);
     bones.hips = hipsBone;
 
-    // Hips — curved shape
-    const hipsGeo = createLatheLimb(0.16, 0.19, 0.17, 0.18, 16);
+    // Hips — wider, more substantial
+    const hipsGeo = createLatheLimb(0.19, 0.22, 0.20, 0.18, 16);
     hipsGeo.rotateX(Math.PI);
     hipsGeo.translate(0, 0.09, 0);
     const hipsMesh = new THREE.Mesh(hipsGeo, outfitDarkMat);
@@ -321,8 +326,8 @@ const Renderer3D = (() => {
     hipsBone.add(spineBone);
     bones.spine = spineBone;
 
-    // Lower torso — tapered cylinder (athletic waist)
-    const torsoLowerGeo = createLatheLimb(0.16, 0.17, 0.15, 0.25, 16);
+    // Lower torso — broader athletic waist
+    const torsoLowerGeo = createLatheLimb(0.19, 0.20, 0.18, 0.25, 16);
     torsoLowerGeo.rotateX(Math.PI);
     torsoLowerGeo.translate(0, 0.12, 0);
     const torsoLowerMesh = new THREE.Mesh(torsoLowerGeo, outfitMat);
@@ -335,23 +340,28 @@ const Renderer3D = (() => {
     spineBone.add(chestBone);
     bones.chest = chestBone;
 
-    // Upper torso — broad chest with pectoral bulge
-    const chestGeo = new THREE.SphereGeometry(0.21, 20, 14);
-    // Shape into a broad chest
+    // Upper torso — broader, more muscular chest
+    const chestGeo = new THREE.SphereGeometry(0.26, 20, 14);
     const chestPos = chestGeo.attributes.position;
     for (let i = 0; i < chestPos.count; i++) {
       let x = chestPos.getX(i);
       let y = chestPos.getY(i);
       let z = chestPos.getZ(i);
 
-      // Widen horizontally, flatten front-back
-      x *= 1.05;
-      z *= 0.85;
-      y *= 1.35;
+      // Widen shoulders, flatten front-back for V-shape
+      x *= 1.15;
+      z *= 0.82;
+      y *= 1.25;
 
-      // Pectoral bulge
-      if (z > 0 && y > -0.05 && y < 0.12) {
-        z += 0.03 * Math.cos(x * 6) * (1 - Math.abs(y) / 0.15);
+      // Pectoral bulge — more pronounced
+      if (z > 0 && y > -0.08 && y < 0.12) {
+        z += 0.04 * Math.cos(x * 5) * (1 - Math.abs(y) / 0.18);
+      }
+
+      // Taper at waist
+      if (y < -0.08) {
+        const taper = 1 - Math.abs(y + 0.08) * 0.3;
+        x *= taper;
       }
 
       chestPos.setXYZ(i, x, y, z);
@@ -368,7 +378,7 @@ const Renderer3D = (() => {
     chestBone.add(neckBone);
     bones.neck = neckBone;
 
-    const neckGeo = createLatheLimb(0.055, 0.06, 0.065, 0.1, 12);
+    const neckGeo = createLatheLimb(0.07, 0.075, 0.08, 0.1, 12);
     neckGeo.rotateX(Math.PI);
     neckGeo.translate(0, 0.1, 0);
     const neckMesh = new THREE.Mesh(neckGeo, skinMat);
@@ -387,13 +397,13 @@ const Renderer3D = (() => {
     meshes.head = headMesh;
 
     // Ears
-    const earGeo = new THREE.SphereGeometry(0.025, 8, 6);
+    const earGeo = new THREE.SphereGeometry(0.03, 8, 6);
     earGeo.scale(0.5, 1, 0.7);
     const lEar = new THREE.Mesh(earGeo, skinMat);
-    lEar.position.set(-0.13, 0.12, 0);
+    lEar.position.set(-0.17, 0.15, 0);
     meshes.lEar = lEar;
     const rEar = new THREE.Mesh(earGeo.clone(), skinMat);
-    rEar.position.set(0.13, 0.12, 0);
+    rEar.position.set(0.17, 0.15, 0);
     meshes.rEar = rEar;
 
     // Hair — fuller, character-specific style
@@ -401,77 +411,77 @@ const Renderer3D = (() => {
     const hairMesh = new THREE.Mesh(hairGeo, hairMat);
     meshes.hair = hairMesh;
 
-    // Eyes — detailed with iris ring
-    const eyeGeo = new THREE.SphereGeometry(0.026, 12, 8);
+    // Eyes — larger, more visible
+    const eyeGeo = new THREE.SphereGeometry(0.035, 12, 8);
     const leftEye = new THREE.Mesh(eyeGeo, eyeWhiteMat);
-    leftEye.position.set(-0.045, 0.14, 0.115);
+    leftEye.position.set(-0.06, 0.17, 0.15);
     meshes.leftEye = leftEye;
 
     const rightEye = new THREE.Mesh(eyeGeo.clone(), eyeWhiteMat);
-    rightEye.position.set(0.045, 0.14, 0.115);
+    rightEye.position.set(0.06, 0.17, 0.15);
     meshes.rightEye = rightEye;
 
     // Iris (colored ring around pupil)
-    const irisGeo = new THREE.RingGeometry(0.008, 0.016, 12);
+    const irisGeo = new THREE.RingGeometry(0.01, 0.022, 12);
     const irisMat = new THREE.MeshStandardMaterial({
       color: getEyeColor(charDef.id),
       emissive: getEyeColor(charDef.id),
-      emissiveIntensity: 0.4,
+      emissiveIntensity: 0.5,
       side: THREE.DoubleSide
     });
     const leftIris = new THREE.Mesh(irisGeo, irisMat);
-    leftIris.position.set(-0.045, 0.14, 0.14);
+    leftIris.position.set(-0.06, 0.17, 0.184);
     meshes.leftIris = leftIris;
     const rightIris = new THREE.Mesh(irisGeo.clone(), irisMat);
-    rightIris.position.set(0.045, 0.14, 0.14);
+    rightIris.position.set(0.06, 0.17, 0.184);
     meshes.rightIris = rightIris;
 
     // Pupils
-    const pupilGeo = new THREE.CircleGeometry(0.008, 8);
+    const pupilGeo = new THREE.CircleGeometry(0.011, 8);
     const leftPupil = new THREE.Mesh(pupilGeo, eyePupilMat);
-    leftPupil.position.set(-0.045, 0.14, 0.141);
+    leftPupil.position.set(-0.06, 0.17, 0.186);
     meshes.leftPupil = leftPupil;
     const rightPupil = new THREE.Mesh(pupilGeo.clone(), eyePupilMat);
-    rightPupil.position.set(0.045, 0.14, 0.141);
+    rightPupil.position.set(0.06, 0.17, 0.186);
     meshes.rightPupil = rightPupil;
 
-    // Eyebrows
-    const browGeo = new THREE.BoxGeometry(0.04, 0.006, 0.01);
+    // Eyebrows — thicker, more expressive
+    const browGeo = new THREE.BoxGeometry(0.055, 0.01, 0.012);
     const browMat = new THREE.MeshStandardMaterial({
       color: getHairColor(charDef.id),
       roughness: 0.8
     });
     const lBrow = new THREE.Mesh(browGeo, browMat);
-    lBrow.position.set(-0.045, 0.175, 0.12);
+    lBrow.position.set(-0.06, 0.21, 0.155);
     lBrow.rotation.z = 0.1;
     meshes.lBrow = lBrow;
     const rBrow = new THREE.Mesh(browGeo.clone(), browMat);
-    rBrow.position.set(0.045, 0.175, 0.12);
+    rBrow.position.set(0.06, 0.21, 0.155);
     rBrow.rotation.z = -0.1;
     meshes.rBrow = rBrow;
 
-    // Mouth — simple line
-    const mouthGeo = new THREE.BoxGeometry(0.04, 0.003, 0.005);
+    // Mouth — wider, more visible
+    const mouthGeo = new THREE.BoxGeometry(0.06, 0.005, 0.008);
     const mouthMat = new THREE.MeshStandardMaterial({ color: 0x993333, roughness: 0.6 });
     const mouth = new THREE.Mesh(mouthGeo, mouthMat);
-    mouth.position.set(0, 0.06, 0.125);
+    mouth.position.set(0, 0.07, 0.16);
     meshes.mouth = mouth;
 
-    // ── LEFT ARM — muscular lathe shape ──
+    // ── LEFT ARM — thicker, more muscular ──
     const lShoulderBone = new THREE.Bone();
-    lShoulderBone.position.set(-0.24, 0.25, 0);
+    lShoulderBone.position.set(-0.28, 0.25, 0);
     chestBone.add(lShoulderBone);
     bones.lShoulder = lShoulderBone;
 
-    // Shoulder cap (deltoid)
-    const deltoidGeo = new THREE.SphereGeometry(0.06, 10, 8);
+    // Shoulder cap (deltoid) — bigger
+    const deltoidGeo = new THREE.SphereGeometry(0.08, 10, 8);
     deltoidGeo.scale(1, 0.9, 0.9);
     const lDeltoid = new THREE.Mesh(deltoidGeo, outfitMat);
     lDeltoid.castShadow = true;
     meshes.lDeltoid = lDeltoid;
 
-    // Upper arm — bicep bulge
-    const upperArmGeo = createLatheLimb(0.055, 0.06, 0.045, 0.28, 10);
+    // Upper arm — thicker bicep
+    const upperArmGeo = createLatheLimb(0.07, 0.08, 0.06, 0.28, 10);
     upperArmGeo.translate(0, -0.14, 0);
     const lUpperArm = new THREE.Mesh(upperArmGeo, outfitMat);
     lUpperArm.castShadow = true;
@@ -482,13 +492,13 @@ const Renderer3D = (() => {
     lShoulderBone.add(lElbowBone);
     bones.lElbow = lElbowBone;
 
-    // Elbow joint
-    const elbowJointGeo = new THREE.SphereGeometry(0.04, 8, 6);
+    // Elbow joint — bigger
+    const elbowJointGeo = new THREE.SphereGeometry(0.055, 8, 6);
     const lElbowJoint = new THREE.Mesh(elbowJointGeo, skinMat);
     meshes.lElbowJoint = lElbowJoint;
 
-    // Lower arm — forearm taper
-    const lowerArmGeo = createLatheLimb(0.045, 0.042, 0.032, 0.26, 10);
+    // Lower arm — thicker forearm
+    const lowerArmGeo = createLatheLimb(0.06, 0.055, 0.042, 0.26, 10);
     lowerArmGeo.translate(0, -0.13, 0);
     const lLowerArm = new THREE.Mesh(lowerArmGeo, skinMat);
     lLowerArm.castShadow = true;
@@ -506,7 +516,7 @@ const Renderer3D = (() => {
 
     // ── RIGHT ARM ──
     const rShoulderBone = new THREE.Bone();
-    rShoulderBone.position.set(0.24, 0.25, 0);
+    rShoulderBone.position.set(0.28, 0.25, 0);
     chestBone.add(rShoulderBone);
     bones.rShoulder = rShoulderBone;
 
@@ -545,8 +555,8 @@ const Renderer3D = (() => {
     hipsBone.add(lHipBone);
     bones.lHip = lHipBone;
 
-    // Upper leg — thigh with quad bulge
-    const upperLegGeo = createLatheLimb(0.075, 0.07, 0.055, 0.42, 12);
+    // Upper leg — thicker thigh
+    const upperLegGeo = createLatheLimb(0.095, 0.09, 0.07, 0.42, 12);
     upperLegGeo.translate(0, -0.21, 0);
     const lUpperLeg = new THREE.Mesh(upperLegGeo, outfitDarkMat);
     lUpperLeg.castShadow = true;
@@ -557,14 +567,14 @@ const Renderer3D = (() => {
     lHipBone.add(lKneeBone);
     bones.lKnee = lKneeBone;
 
-    // Knee cap
-    const kneeGeo = new THREE.SphereGeometry(0.05, 8, 6);
+    // Knee cap — bigger
+    const kneeGeo = new THREE.SphereGeometry(0.065, 8, 6);
     kneeGeo.scale(1, 0.8, 0.9);
     const lKneeCap = new THREE.Mesh(kneeGeo, outfitDarkMat);
     meshes.lKneeCap = lKneeCap;
 
-    // Lower leg — calf muscle shape
-    const lowerLegGeo = createLatheLimb(0.055, 0.052, 0.035, 0.4, 10);
+    // Lower leg — thicker calf
+    const lowerLegGeo = createLatheLimb(0.07, 0.065, 0.045, 0.4, 10);
     lowerLegGeo.translate(0, -0.2, 0);
     const lLowerLeg = new THREE.Mesh(lowerLegGeo, outfitDarkMat);
     lLowerLeg.castShadow = true;
@@ -629,10 +639,10 @@ const Renderer3D = (() => {
     boneGroups.chest.position.set(0, 0.28, 0);
     boneGroups.neck.position.set(0, 0.3, 0);
     boneGroups.head.position.set(0, 0.12, 0);
-    boneGroups.lShoulder.position.set(-0.24, 0.25, 0);
+    boneGroups.lShoulder.position.set(-0.28, 0.25, 0);
     boneGroups.lElbow.position.set(0, -0.28, 0);
     if (boneGroups.lWrist) boneGroups.lWrist.position.set(0, -0.26, 0);
-    boneGroups.rShoulder.position.set(0.24, 0.25, 0);
+    boneGroups.rShoulder.position.set(0.28, 0.25, 0);
     boneGroups.rElbow.position.set(0, -0.28, 0);
     if (boneGroups.rWrist) boneGroups.rWrist.position.set(0, -0.26, 0);
     boneGroups.lHip.position.set(-0.1, -0.05, 0);
@@ -745,25 +755,25 @@ const Renderer3D = (() => {
   function createHand(material) {
     const hand = new THREE.Group();
 
-    // Palm
-    const palmGeo = new THREE.BoxGeometry(0.05, 0.04, 0.04);
-    palmGeo.translate(0, -0.02, 0);
+    // Palm — bigger
+    const palmGeo = new THREE.BoxGeometry(0.07, 0.05, 0.05);
+    palmGeo.translate(0, -0.025, 0);
     const palm = new THREE.Mesh(palmGeo, material);
     palm.castShadow = true;
     hand.add(palm);
 
-    // 4 fingers
-    const fingerGeo = new THREE.CylinderGeometry(0.007, 0.005, 0.035, 6);
+    // 4 fingers — thicker
+    const fingerGeo = new THREE.CylinderGeometry(0.01, 0.008, 0.045, 6);
     for (let i = 0; i < 4; i++) {
       const finger = new THREE.Mesh(fingerGeo.clone(), material);
-      finger.position.set(-0.015 + i * 0.01, -0.058, 0);
+      finger.position.set(-0.02 + i * 0.014, -0.07, 0);
       hand.add(finger);
     }
 
-    // Thumb
-    const thumbGeo = new THREE.CylinderGeometry(0.008, 0.006, 0.03, 6);
+    // Thumb — thicker
+    const thumbGeo = new THREE.CylinderGeometry(0.011, 0.009, 0.04, 6);
     const thumb = new THREE.Mesh(thumbGeo, material);
-    thumb.position.set(0.03, -0.025, 0.015);
+    thumb.position.set(0.04, -0.03, 0.018);
     thumb.rotation.z = -0.5;
     hand.add(thumb);
 
@@ -776,8 +786,8 @@ const Renderer3D = (() => {
   function createShoe(material) {
     const shoe = new THREE.Group();
 
-    // Sole
-    const soleGeo = new THREE.BoxGeometry(0.09, 0.03, 0.16);
+    // Sole — bigger feet
+    const soleGeo = new THREE.BoxGeometry(0.11, 0.04, 0.2);
     const solePts = soleGeo.attributes.position;
     // Round the front
     for (let i = 0; i < solePts.count; i++) {
@@ -805,21 +815,21 @@ const Renderer3D = (() => {
      HAIR GEOMETRY — Character-specific styles
      ========================================================= */
   function createHairGeometry(charId) {
+    // Hair scaled for bigger head (0.19 base radius, translate ~0.22)
     switch (charId) {
       case 'honored_one':
       case 'boss_gojo': {
         // Gojo — spiky white hair
-        const base = new THREE.SphereGeometry(0.14, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const base = new THREE.SphereGeometry(0.19, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6);
         base.scale(1.1, 1.15, 1.1);
-        base.translate(0, 0.17, 0);
-        // Add spikes by perturbing vertices
+        base.translate(0, 0.22, 0);
         const pos = base.attributes.position;
         for (let i = 0; i < pos.count; i++) {
           const y = pos.getY(i);
-          if (y > 0.22) {
-            const spike = Math.random() * 0.04;
+          if (y > 0.28) {
+            const spike = Math.random() * 0.06;
             pos.setY(i, y + spike);
-            pos.setZ(i, pos.getZ(i) + (Math.random() - 0.5) * 0.03);
+            pos.setZ(i, pos.getZ(i) + (Math.random() - 0.5) * 0.04);
           }
         }
         base.computeVertexNormals();
@@ -828,22 +838,22 @@ const Renderer3D = (() => {
 
       case 'hakari': {
         // Hakari — slicked back blonde
-        const base = new THREE.SphereGeometry(0.14, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.55);
+        const base = new THREE.SphereGeometry(0.19, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.55);
         base.scale(1.08, 1.2, 1.15);
-        base.translate(0, 0.16, -0.02);
+        base.translate(0, 0.21, -0.02);
         return base;
       }
 
       case 'ten_shadows': {
         // Megumi — spiky dark hair pointing up
-        const base = new THREE.SphereGeometry(0.14, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const base = new THREE.SphereGeometry(0.19, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6);
         base.scale(1.06, 1.3, 1.05);
-        base.translate(0, 0.17, 0);
+        base.translate(0, 0.22, 0);
         const pos = base.attributes.position;
         for (let i = 0; i < pos.count; i++) {
           const y = pos.getY(i);
-          if (y > 0.24) {
-            pos.setY(i, y + Math.random() * 0.06);
+          if (y > 0.30) {
+            pos.setY(i, y + Math.random() * 0.08);
           }
         }
         base.computeVertexNormals();
@@ -853,23 +863,23 @@ const Renderer3D = (() => {
       case 'boss_sukuna':
       case 'strongest_of_history': {
         // Sukuna — short cropped with marking ridges
-        const base = new THREE.SphereGeometry(0.135, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        const base = new THREE.SphereGeometry(0.185, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5);
         base.scale(1.05, 1.05, 1.05);
-        base.translate(0, 0.17, 0);
+        base.translate(0, 0.22, 0);
         return base;
       }
 
       case 'boss_mahoraga': {
         // Mahoraga — spiky crest
-        const base = new THREE.SphereGeometry(0.15, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.65);
+        const base = new THREE.SphereGeometry(0.20, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.65);
         base.scale(1.15, 1.4, 1.1);
-        base.translate(0, 0.18, -0.01);
+        base.translate(0, 0.23, -0.01);
         const pos = base.attributes.position;
         for (let i = 0; i < pos.count; i++) {
           const y = pos.getY(i);
           const x = pos.getX(i);
-          if (y > 0.25 && Math.abs(x) < 0.04) {
-            pos.setY(i, y + 0.08);
+          if (y > 0.32 && Math.abs(x) < 0.05) {
+            pos.setY(i, y + 0.10);
           }
         }
         base.computeVertexNormals();
@@ -878,15 +888,15 @@ const Renderer3D = (() => {
 
       case 'kashimo': {
         // Kashimo — short spiky silver-white hair
-        const base = new THREE.SphereGeometry(0.14, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55);
+        const base = new THREE.SphereGeometry(0.19, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.55);
         base.scale(1.08, 1.2, 1.06);
-        base.translate(0, 0.17, 0);
+        base.translate(0, 0.22, 0);
         const pos = base.attributes.position;
         for (let i = 0; i < pos.count; i++) {
           const y = pos.getY(i);
-          if (y > 0.22) {
-            pos.setY(i, y + Math.random() * 0.035);
-            pos.setX(i, pos.getX(i) + (Math.random() - 0.5) * 0.02);
+          if (y > 0.28) {
+            pos.setY(i, y + Math.random() * 0.05);
+            pos.setX(i, pos.getX(i) + (Math.random() - 0.5) * 0.03);
           }
         }
         base.computeVertexNormals();
@@ -895,15 +905,15 @@ const Renderer3D = (() => {
 
       case 'takaba': {
         // Takaba — messy medium black hair
-        const base = new THREE.SphereGeometry(0.14, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.65);
+        const base = new THREE.SphereGeometry(0.19, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.65);
         base.scale(1.1, 1.15, 1.1);
-        base.translate(0, 0.16, -0.01);
+        base.translate(0, 0.21, -0.01);
         const pos = base.attributes.position;
         for (let i = 0; i < pos.count; i++) {
           const y = pos.getY(i);
-          if (y > 0.2) {
-            pos.setX(i, pos.getX(i) + (Math.random() - 0.5) * 0.04);
-            pos.setZ(i, pos.getZ(i) + (Math.random() - 0.5) * 0.04);
+          if (y > 0.26) {
+            pos.setX(i, pos.getX(i) + (Math.random() - 0.5) * 0.05);
+            pos.setZ(i, pos.getZ(i) + (Math.random() - 0.5) * 0.05);
           }
         }
         base.computeVertexNormals();
@@ -912,14 +922,14 @@ const Renderer3D = (() => {
 
       case 'yuta': {
         // Yuta — medium-length dark hair, slightly messy
-        const base = new THREE.SphereGeometry(0.14, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.63);
+        const base = new THREE.SphereGeometry(0.19, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.63);
         base.scale(1.08, 1.18, 1.1);
-        base.translate(0, 0.17, -0.01);
+        base.translate(0, 0.22, -0.01);
         const pos = base.attributes.position;
         for (let i = 0; i < pos.count; i++) {
           const y = pos.getY(i);
-          if (y > 0.23) {
-            pos.setY(i, y + Math.random() * 0.03);
+          if (y > 0.28) {
+            pos.setY(i, y + Math.random() * 0.04);
           }
         }
         base.computeVertexNormals();
@@ -927,25 +937,25 @@ const Renderer3D = (() => {
       }
 
       case 'maki': {
-        // Maki — tied-back dark green hair (tight, pulled back)
-        const base = new THREE.SphereGeometry(0.14, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.52);
+        // Maki — tied-back dark green hair
+        const base = new THREE.SphereGeometry(0.19, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.52);
         base.scale(1.04, 1.08, 1.12);
-        base.translate(0, 0.17, -0.02);
+        base.translate(0, 0.22, -0.02);
         return base;
       }
 
       case 'choso': {
         // Choso — twin tails / tied dark hair with volume on top
-        const base = new THREE.SphereGeometry(0.14, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const base = new THREE.SphereGeometry(0.19, 14, 10, 0, Math.PI * 2, 0, Math.PI * 0.6);
         base.scale(1.1, 1.22, 1.08);
-        base.translate(0, 0.17, 0);
+        base.translate(0, 0.22, 0);
         const pos = base.attributes.position;
         for (let i = 0; i < pos.count; i++) {
           const y = pos.getY(i);
           const z = pos.getZ(i);
-          if (y > 0.18 && z < -0.05) {
-            pos.setZ(i, z - 0.06);
-            pos.setY(i, y - 0.03);
+          if (y > 0.24 && z < -0.05) {
+            pos.setZ(i, z - 0.08);
+            pos.setY(i, y - 0.04);
           }
         }
         base.computeVertexNormals();
@@ -954,17 +964,17 @@ const Renderer3D = (() => {
 
       case 'naoya': {
         // Naoya — slicked back blonde-brown hair
-        const base = new THREE.SphereGeometry(0.14, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.54);
+        const base = new THREE.SphereGeometry(0.19, 12, 10, 0, Math.PI * 2, 0, Math.PI * 0.54);
         base.scale(1.06, 1.14, 1.15);
-        base.translate(0, 0.17, -0.02);
+        base.translate(0, 0.22, -0.02);
         return base;
       }
 
       default: {
         // Default — medium-length with slight volume
-        const base = new THREE.SphereGeometry(0.14, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.62);
+        const base = new THREE.SphereGeometry(0.19, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.62);
         base.scale(1.06, 1.12, 1.06);
-        base.translate(0, 0.17, -0.005);
+        base.translate(0, 0.22, -0.005);
         return base;
       }
     }
@@ -2631,7 +2641,7 @@ const Renderer3D = (() => {
      CAMERA SHAKE
      ========================================================= */
   let cameraShake = { intensity: 0, decay: 8 };
-  const cameraBasePos = { x: 0, y: 3.5, z: 6 };
+  const cameraBasePos = { x: 0, y: 4.5, z: 10 };
 
   function triggerShake(intensity) {
     cameraShake.intensity = Math.min(cameraShake.intensity + intensity, 0.3);
@@ -2765,7 +2775,7 @@ const Renderer3D = (() => {
       }
     });
 
-    // Roblox-style third-person camera — behind/above player, looking at action
+    // Roblox-style third-person camera — elevated, behind player, over-the-shoulder
     if (playerFighter && enemyFighter) {
       const W = window.innerWidth;
       const playerX = ((playerFighter.x / W) - 0.5) * 8;
@@ -2773,16 +2783,28 @@ const Renderer3D = (() => {
       const midX = (playerX + enemyX) / 2;
       const dist = Math.abs(playerX - enemyX);
 
-      // Camera orbits behind player, offset towards the action midpoint
-      const behindOffset = playerFighter.facing > 0 ? -2.5 : 2.5;
-      const targetX = playerX * 0.6 + midX * 0.4 + behindOffset * 0.3;
-      const targetY = 3.0 + dist * 0.15; // Rise higher when fighters spread apart
-      const targetZ = Math.max(4.5, Math.min(9, dist * 1.2 + 4));
+      // Camera sits behind and above the player, shifted to show the opponent
+      // Like Roblox: elevated, slightly to one side, looking over shoulder
+      const facingDir = playerFighter.facing > 0 ? 1 : -1;
+      const shoulderOffset = facingDir * -1.0; // offset opposite to facing for over-shoulder view
 
-      // Smooth follow with different speeds for each axis
-      camera.position.x += (targetX - camera.position.x) * 0.08;
-      camera.position.y += (targetY - camera.position.y) * 0.05;
-      cameraBasePos.z += (targetZ - cameraBasePos.z) * 0.04;
+      // Target X: mostly follow player, slight pull toward midpoint
+      const targetX = playerX * 0.7 + midX * 0.3 + shoulderOffset;
+
+      // Target Y: high up like Roblox — elevated perspective
+      const targetY = 4.0 + dist * 0.1;
+
+      // Target Z: far back, pull back more when fighters spread
+      const targetZ = Math.max(8, Math.min(14, dist * 1.0 + 8));
+
+      // Smooth follow — Roblox uses very smooth interpolation
+      const lerpX = 0.04; // slow X follow for cinematic feel
+      const lerpY = 0.03; // very smooth vertical
+      const lerpZ = 0.025; // slowest depth for stability
+
+      camera.position.x += (targetX - camera.position.x) * lerpX;
+      camera.position.y += (targetY - camera.position.y) * lerpY;
+      cameraBasePos.z += (targetZ - cameraBasePos.z) * lerpZ;
 
       // Apply shake
       if (cameraShake.intensity > 0.001) {
@@ -2793,12 +2815,12 @@ const Renderer3D = (() => {
         camera.position.y += sy;
         cameraShake.intensity *= Math.max(0, 1 - cameraShake.decay * dt);
       } else {
-        camera.position.z += (cameraBasePos.z - camera.position.z) * 0.1;
+        camera.position.z += (cameraBasePos.z - camera.position.z) * 0.06;
       }
 
-      // Look at a point between the fighters, slightly above ground
-      const lookX = midX;
-      const lookY = 1.2;
+      // Look at the action — between fighters, at character chest height
+      const lookX = playerX * 0.4 + midX * 0.6;
+      const lookY = 1.5;
       camera.lookAt(lookX, lookY, 0);
     }
   }
