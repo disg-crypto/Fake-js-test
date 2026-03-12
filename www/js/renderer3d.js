@@ -109,7 +109,7 @@ const Renderer3D = (() => {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.6;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     canvasEl = renderer.domElement;
@@ -132,10 +132,15 @@ const Renderer3D = (() => {
   }
 
   function setupLighting() {
-    const ambient = new THREE.AmbientLight(0x404060, 0.6);
+    // Hemisphere light for natural sky/ground color blending
+    const hemi = new THREE.HemisphereLight(0x6688cc, 0x443344, 0.8);
+    scene.add(hemi);
+    lights.hemi = hemi;
+
+    const ambient = new THREE.AmbientLight(0x606080, 1.0);
     scene.add(ambient);
 
-    const key = new THREE.DirectionalLight(0xffeedd, 1.4);
+    const key = new THREE.DirectionalLight(0xffeedd, 2.0);
     key.position.set(3, 8, 5);
     key.castShadow = true;
     key.shadow.mapSize.width = 1024;
@@ -149,12 +154,12 @@ const Renderer3D = (() => {
     scene.add(key);
     lights.key = key;
 
-    const rim = new THREE.DirectionalLight(0x8888ff, 0.5);
+    const rim = new THREE.DirectionalLight(0x8888ff, 0.8);
     rim.position.set(-2, 4, -4);
     scene.add(rim);
     lights.rim = rim;
 
-    const fill = new THREE.PointLight(0x443355, 0.4, 15);
+    const fill = new THREE.PointLight(0x665577, 0.8, 20);
     fill.position.set(0, 0.5, 4);
     scene.add(fill);
     lights.fill = fill;
@@ -2007,11 +2012,11 @@ const Renderer3D = (() => {
         const pw = (plat.w / W) * 8;
         const platGeo = new THREE.BoxGeometry(pw, 0.08, 1.2);
         const platMat = new THREE.MeshStandardMaterial({
-          color: mapId === 'domain' ? 0x440000 : mapId === 'shibuya' ? 0x2a2a3e : 0x334455,
-          roughness: 0.6,
-          metalness: 0.3,
-          emissive: mapId === 'domain' ? 0x330000 : 0x111122,
-          emissiveIntensity: 0.3
+          color: mapId === 'domain' ? 0x550011 : mapId === 'shibuya' ? 0x3a3a55 : 0x445566,
+          roughness: 0.4,
+          metalness: 0.5,
+          emissive: mapId === 'domain' ? 0x440000 : 0x1a1a33,
+          emissiveIntensity: 0.45
         });
         const platMesh = new THREE.Mesh(platGeo, platMat);
         platMesh.position.set(px, py - 0.04, 0);
@@ -2022,9 +2027,9 @@ const Renderer3D = (() => {
         // Platform edge glow
         const edgeGeo = new THREE.BoxGeometry(pw + 0.05, 0.02, 1.25);
         const edgeMat = new THREE.MeshBasicMaterial({
-          color: mapId === 'domain' ? 0xff2200 : 0x4488ff,
+          color: mapId === 'domain' ? 0xff3300 : mapId === 'shibuya' ? 0xff4488 : 0x55aaff,
           transparent: true,
-          opacity: 0.5
+          opacity: 0.7
         });
         const edge = new THREE.Mesh(edgeGeo, edgeMat);
         edge.position.set(px, py, 0);
@@ -2034,18 +2039,18 @@ const Renderer3D = (() => {
   }
 
   function createShinjukuMap(W, H, gndY, platforms) {
-    // Sky — dark blue gradient via background
-    scene.background = new THREE.Color(0x0a0a1a);
-    scene.fog = new THREE.Fog(0x0a0a2a, 15, 40);
+    // Sky — deep blue-purple night
+    scene.background = new THREE.Color(0x0e0e2a);
+    scene.fog = new THREE.Fog(0x0e0e2a, 20, 55);
 
-    // Ground
+    // Ground — polished station platform
     const groundGeo = new THREE.PlaneGeometry(20, 8);
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x1a1a2e,
-      roughness: 0.8,
-      metalness: 0.2,
-      emissive: 0x0a0a1a,
-      emissiveIntensity: 0.2
+      color: 0x2a2a44,
+      roughness: 0.5,
+      metalness: 0.4,
+      emissive: 0x151530,
+      emissiveIntensity: 0.35
     });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
@@ -2059,7 +2064,7 @@ const Renderer3D = (() => {
     const moon = new THREE.Mesh(moonGeo, moonMat);
     moon.position.set(3, 7, -15);
     mapGroup.add(moon);
-    const moonLight = new THREE.PointLight(0xeeeeff, 0.4, 30);
+    const moonLight = new THREE.PointLight(0xccccff, 1.0, 40);
     moonLight.position.copy(moon.position);
     scene.add(moonLight);
     mapLights.push(moonLight);
@@ -2072,22 +2077,23 @@ const Renderer3D = (() => {
       const bz = -6 - Math.random() * 8;
       const buildGeo = new THREE.BoxGeometry(bw, bh, bw * 0.8);
       const buildMat = new THREE.MeshStandardMaterial({
-        color: 0x1a1a2e,
-        roughness: 0.9,
-        emissive: 0x0a0a1a,
-        emissiveIntensity: 0.1
+        color: 0x252540,
+        roughness: 0.7,
+        metalness: 0.2,
+        emissive: 0x111128,
+        emissiveIntensity: 0.2
       });
       const building = new THREE.Mesh(buildGeo, buildMat);
       building.position.set(bx, bh / 2, bz);
       building.castShadow = true;
       mapGroup.add(building);
 
-      // Window lights (random emissive planes)
+      // Window lights (random emissive planes — brighter)
       const winCount = Math.floor(bh * 2);
       for (let w = 0; w < winCount; w++) {
-        if (Math.random() > 0.4) continue;
-        const winGeo = new THREE.PlaneGeometry(0.08, 0.06);
-        const winColor = Math.random() > 0.5 ? 0xffcc44 : 0x88aaff;
+        if (Math.random() > 0.55) continue;
+        const winGeo = new THREE.PlaneGeometry(0.1, 0.07);
+        const winColor = Math.random() > 0.5 ? 0xffdd66 : 0x99bbff;
         const winMat = new THREE.MeshBasicMaterial({ color: winColor });
         const win = new THREE.Mesh(winGeo, winMat);
         win.position.set(
@@ -2102,28 +2108,91 @@ const Renderer3D = (() => {
     // Station roof overhang
     const roofGeo = new THREE.BoxGeometry(10, 0.15, 3);
     const roofMat = new THREE.MeshStandardMaterial({
-      color: 0x2a2a3e,
-      roughness: 0.7,
-      metalness: 0.3
+      color: 0x3a3a55,
+      roughness: 0.5,
+      metalness: 0.4,
+      emissive: 0x151530,
+      emissiveIntensity: 0.15
     });
     const roof = new THREE.Mesh(roofGeo, roofMat);
     roof.position.set(0, 4.5, -1);
     roof.castShadow = true;
     mapGroup.add(roof);
 
-    // Neon accent lights
+    // Neon accent lights — vibrant and punchy
     const neonColors = [0xff0066, 0x00ffcc, 0xff6600, 0x4488ff];
     neonColors.forEach((c, i) => {
-      const nl = new THREE.PointLight(c, 0.3, 6);
+      const nl = new THREE.PointLight(c, 0.8, 8);
       nl.position.set(-3 + i * 2, 2.5, 1);
       scene.add(nl);
       mapLights.push(nl);
+      // Neon lights flicker
+      mapAnimObjects.push({ light: nl, type: 'neonFlicker', phase: Math.random() * Math.PI * 2, baseIntensity: 0.8, color: c });
+
+      // Neon sign glow planes on buildings
+      const signGeo = new THREE.PlaneGeometry(0.5, 0.18);
+      const signMat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85 });
+      const sign = new THREE.Mesh(signGeo, signMat);
+      sign.position.set(-3 + i * 2, 2.8, -2);
+      mapGroup.add(sign);
+      mapAnimObjects.push({ mesh: sign, type: 'neonFlicker', phase: Math.random() * Math.PI * 2, baseIntensity: 0.85 });
     });
+
+    // Overhead station fluorescent glow
+    const stationLight = new THREE.PointLight(0xccccff, 0.6, 12);
+    stationLight.position.set(0, 4.2, 0);
+    scene.add(stationLight);
+    mapLights.push(stationLight);
+    mapAnimObjects.push({ light: stationLight, type: 'fluorescent', phase: 0, baseIntensity: 0.6 });
+
+    // Moving train in background
+    const trainGroup = new THREE.Group();
+    const trainBody = new THREE.BoxGeometry(3.5, 0.8, 0.9);
+    const trainMat = new THREE.MeshStandardMaterial({ color: 0x2a2a44, roughness: 0.5, metalness: 0.6, emissive: 0x111128, emissiveIntensity: 0.2 });
+    const train = new THREE.Mesh(trainBody, trainMat);
+    trainGroup.add(train);
+    // Train windows
+    for (let tw = 0; tw < 5; tw++) {
+      const twGeo = new THREE.PlaneGeometry(0.35, 0.3);
+      const twMat = new THREE.MeshBasicMaterial({ color: 0xffddaa, transparent: true, opacity: 0.7 });
+      const twMesh = new THREE.Mesh(twGeo, twMat);
+      twMesh.position.set(-1.4 + tw * 0.7, 0.05, 0.46);
+      trainGroup.add(twMesh);
+    }
+    // Train stripe
+    const stripeGeo = new THREE.PlaneGeometry(3.55, 0.06);
+    const stripeMat = new THREE.MeshBasicMaterial({ color: 0x7c4dff, transparent: true, opacity: 0.8 });
+    const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+    stripe.position.set(0, -0.15, 0.46);
+    trainGroup.add(stripe);
+    trainGroup.position.set(-12, 2.8, -4);
+    mapGroup.add(trainGroup);
+    mapAnimObjects.push({ mesh: trainGroup, type: 'train', phase: 0, speed: 2.5 });
+
+    // Floating dust/light particles
+    for (let i = 0; i < 25; i++) {
+      const pGeo = new THREE.SphereGeometry(0.015 + Math.random() * 0.02, 4, 4);
+      const pMat = new THREE.MeshBasicMaterial({
+        color: Math.random() > 0.5 ? 0xccbbff : 0xffffff,
+        transparent: true,
+        opacity: 0.4 + Math.random() * 0.4
+      });
+      const particle = new THREE.Mesh(pGeo, pMat);
+      const startX = (Math.random() - 0.5) * 12;
+      const startY = 0.2 + Math.random() * 4;
+      const startZ = (Math.random() - 0.5) * 6;
+      particle.position.set(startX, startY, startZ);
+      mapGroup.add(particle);
+      mapAnimObjects.push({
+        mesh: particle, type: 'dustFloat', phase: Math.random() * Math.PI * 2,
+        baseY: startY, baseX: startX, speed: 0.3 + Math.random() * 0.7, amplitude: 0.3 + Math.random() * 0.5
+      });
+    }
 
     // Stars (small emissive spheres)
     for (let i = 0; i < 40; i++) {
       const starGeo = new THREE.SphereGeometry(0.02 + Math.random() * 0.02, 4, 4);
-      const starMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const starMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true });
       const star = new THREE.Mesh(starGeo, starMat);
       star.position.set(
         (Math.random() - 0.5) * 20,
@@ -2136,8 +2205,8 @@ const Renderer3D = (() => {
   }
 
   function createShibuyaMap(W, H, gndY, platforms) {
-    scene.background = new THREE.Color(0x1a0a0a);
-    scene.fog = new THREE.FogExp2(0x1a0a0a, 0.06);
+    scene.background = new THREE.Color(0x1a0e10);
+    scene.fog = new THREE.FogExp2(0x1a0e10, 0.035);
 
     // Ground with cracks
     const groundGeo = new THREE.PlaneGeometry(20, 8, 20, 10);
@@ -2148,11 +2217,11 @@ const Renderer3D = (() => {
     }
     groundGeo.computeVertexNormals();
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x2a2a2a,
-      roughness: 0.9,
-      metalness: 0.1,
-      emissive: 0x1a0a0a,
-      emissiveIntensity: 0.15
+      color: 0x3a3038,
+      roughness: 0.7,
+      metalness: 0.2,
+      emissive: 0x221018,
+      emissiveIntensity: 0.25
     });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
@@ -2160,13 +2229,21 @@ const Renderer3D = (() => {
     ground.receiveShadow = true;
     mapGroup.add(ground);
 
-    // Red cursed energy sky glow
-    const skyGlow = new THREE.PointLight(0xff2200, 0.8, 25);
+    // Red cursed energy sky glow — pulsing
+    const skyGlow = new THREE.PointLight(0xff3311, 1.5, 35);
     skyGlow.position.set(0, 8, -5);
     scene.add(skyGlow);
     mapLights.push(skyGlow);
+    mapAnimObjects.push({ light: skyGlow, type: 'cursedPulse', phase: 0, baseIntensity: 1.5 });
 
-    // Buildings (corrupted aesthetic)
+    // Additional cursed glow from below — pulsing out of sync
+    const groundGlow = new THREE.PointLight(0xff1100, 0.6, 10);
+    groundGlow.position.set(0, 0.2, 0);
+    scene.add(groundGlow);
+    mapLights.push(groundGlow);
+    mapAnimObjects.push({ light: groundGlow, type: 'cursedPulse', phase: Math.PI, baseIntensity: 0.6 });
+
+    // Buildings (corrupted aesthetic — some sway slightly)
     for (let i = 0; i < 10; i++) {
       const bw = 0.8 + Math.random() * 1.5;
       const bh = 2 + Math.random() * 4;
@@ -2175,25 +2252,31 @@ const Renderer3D = (() => {
       const buildGeo = new THREE.BoxGeometry(bw, bh, bw * 0.7);
       const tilt = (Math.random() - 0.5) * 0.05;
       const buildMat = new THREE.MeshStandardMaterial({
-        color: 0x1a1a2a,
-        roughness: 0.85,
-        emissive: 0x220000,
-        emissiveIntensity: 0.15
+        color: 0x2a2035,
+        roughness: 0.7,
+        metalness: 0.15,
+        emissive: 0x330808,
+        emissiveIntensity: 0.25
       });
       const building = new THREE.Mesh(buildGeo, buildMat);
       building.position.set(bx, bh / 2, bz);
       building.rotation.z = tilt;
       building.castShadow = true;
       mapGroup.add(building);
+      // Corrupted buildings sway slightly
+      if (Math.random() > 0.5) {
+        mapAnimObjects.push({ mesh: building, type: 'sway', phase: Math.random() * Math.PI * 2, baseTilt: tilt, amplitude: 0.008 });
+      }
     }
 
-    // Neon signs (red/purple)
+    // Neon signs (red/purple) — flickering
     const shibuyaNeons = [0xff0044, 0xcc00ff, 0xff4400, 0xff0066];
     shibuyaNeons.forEach((c, i) => {
-      const nl = new THREE.PointLight(c, 0.4, 5);
+      const nl = new THREE.PointLight(c, 0.9, 7);
       nl.position.set(-3 + i * 2, 2, 0.5);
       scene.add(nl);
       mapLights.push(nl);
+      mapAnimObjects.push({ light: nl, type: 'neonFlicker', phase: Math.random() * Math.PI * 2, baseIntensity: 0.9, color: c });
 
       // Neon sign plane
       const signGeo = new THREE.PlaneGeometry(0.6, 0.2);
@@ -2201,35 +2284,63 @@ const Renderer3D = (() => {
       const sign = new THREE.Mesh(signGeo, signMat);
       sign.position.set(-3 + i * 2, 3, -3);
       mapGroup.add(sign);
+      mapAnimObjects.push({ mesh: sign, type: 'neonFlicker', phase: Math.random() * Math.PI * 2, baseIntensity: 0.8 });
     });
 
-    // Floating cursed energy wisps
-    for (let i = 0; i < 15; i++) {
+    // Cursed energy rising columns (vertical wisps that rise and respawn)
+    for (let i = 0; i < 8; i++) {
+      const colGeo = new THREE.CylinderGeometry(0.02, 0.06, 1.5, 6);
+      const colMat = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.35 });
+      const col = new THREE.Mesh(colGeo, colMat);
+      const cx = (Math.random() - 0.5) * 10;
+      const cz = (Math.random() - 0.5) * 4;
+      col.position.set(cx, 0, cz);
+      mapGroup.add(col);
+      mapAnimObjects.push({ mesh: col, type: 'risingColumn', phase: Math.random() * Math.PI * 2, baseX: cx, baseZ: cz, speed: 0.8 + Math.random() * 1.2 });
+    }
+
+    // Floating cursed energy wisps — more dynamic
+    for (let i = 0; i < 20; i++) {
       const wispGeo = new THREE.SphereGeometry(0.04 + Math.random() * 0.06, 6, 6);
-      const wispMat = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 0.6 });
+      const wispColor = Math.random() > 0.3 ? 0xff2200 : 0xff00aa;
+      const wispMat = new THREE.MeshBasicMaterial({ color: wispColor, transparent: true, opacity: 0.6 });
       const wisp = new THREE.Mesh(wispGeo, wispMat);
-      wisp.position.set(
-        (Math.random() - 0.5) * 10,
-        0.5 + Math.random() * 4,
-        (Math.random() - 0.5) * 4
-      );
+      const wx = (Math.random() - 0.5) * 10;
+      const wy = 0.5 + Math.random() * 4;
+      const wz = (Math.random() - 0.5) * 4;
+      wisp.position.set(wx, wy, wz);
       mapGroup.add(wisp);
-      mapAnimObjects.push({ mesh: wisp, type: 'float', phase: Math.random() * Math.PI * 2, speed: 0.5 + Math.random() });
+      mapAnimObjects.push({
+        mesh: wisp, type: 'cursedWisp', phase: Math.random() * Math.PI * 2,
+        baseX: wx, baseY: wy, baseZ: wz, speed: 0.5 + Math.random(), orbitRadius: 0.3 + Math.random() * 0.8
+      });
+    }
+
+    // Ground crack glow lines
+    for (let i = 0; i < 6; i++) {
+      const crackGeo = new THREE.PlaneGeometry(1.5 + Math.random() * 2, 0.03);
+      const crackMat = new THREE.MeshBasicMaterial({ color: 0xff3300, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+      const crack = new THREE.Mesh(crackGeo, crackMat);
+      crack.rotation.x = -Math.PI / 2;
+      crack.rotation.z = Math.random() * Math.PI;
+      crack.position.set((Math.random() - 0.5) * 8, 0.02, (Math.random() - 0.5) * 3);
+      mapGroup.add(crack);
+      mapAnimObjects.push({ mesh: crack, type: 'groundCrackPulse', phase: Math.random() * Math.PI * 2 });
     }
   }
 
   function createDomainMap(W, H, gndY, platforms) {
-    scene.background = new THREE.Color(0x050005);
-    scene.fog = new THREE.FogExp2(0x0a0005, 0.04);
+    scene.background = new THREE.Color(0x0a0008);
+    scene.fog = new THREE.FogExp2(0x0a0008, 0.025);
 
     // Ground — void with grid lines
     const groundGeo = new THREE.PlaneGeometry(24, 12, 48, 24);
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x0a0005,
-      roughness: 0.95,
-      metalness: 0.0,
-      emissive: 0x110000,
-      emissiveIntensity: 0.1,
+      color: 0x150010,
+      roughness: 0.8,
+      metalness: 0.1,
+      emissive: 0x220000,
+      emissiveIntensity: 0.25,
       wireframe: false
     });
     const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -2241,31 +2352,48 @@ const Renderer3D = (() => {
     // Grid lines
     const gridGeo = new THREE.PlaneGeometry(24, 12, 48, 24);
     const gridMat = new THREE.MeshBasicMaterial({
-      color: 0x440000,
+      color: 0x660011,
       wireframe: true,
       transparent: true,
-      opacity: 0.3
+      opacity: 0.45
     });
     const grid = new THREE.Mesh(gridGeo, gridMat);
     grid.rotation.x = -Math.PI / 2;
     grid.position.y = 0.01;
     mapGroup.add(grid);
 
-    // Central red pulse light
-    const centerLight = new THREE.PointLight(0xff0000, 1.5, 12);
+    // Central red pulse light — intense heartbeat
+    const centerLight = new THREE.PointLight(0xff0000, 2.5, 18);
     centerLight.position.set(0, 0.3, 0);
     scene.add(centerLight);
     mapLights.push(centerLight);
-    mapAnimObjects.push({ light: centerLight, type: 'pulse', phase: 0 });
+    mapAnimObjects.push({ light: centerLight, type: 'heartbeat', phase: 0, baseIntensity: 2.5 });
+
+    // Secondary orbiting lights
+    for (let i = 0; i < 3; i++) {
+      const orbitLight = new THREE.PointLight(0xff2200, 0.8, 8);
+      orbitLight.position.set(0, 0.5, 0);
+      scene.add(orbitLight);
+      mapLights.push(orbitLight);
+      mapAnimObjects.push({ light: orbitLight, type: 'orbitLight', phase: (i / 3) * Math.PI * 2, radius: 3, speed: 0.5, baseY: 0.5 });
+    }
 
     // Torii gate
     const toriiMat = new THREE.MeshStandardMaterial({
-      color: 0x880000,
-      roughness: 0.5,
+      color: 0xaa0000,
+      roughness: 0.4,
       metalness: 0.3,
-      emissive: 0x440000,
-      emissiveIntensity: 0.4
+      emissive: 0x660000,
+      emissiveIntensity: 0.6
     });
+
+    // Torii gate backlight — pulsing
+    const toriiLight = new THREE.PointLight(0xff2200, 1.2, 10);
+    toriiLight.position.set(0, 2, -3.5);
+    scene.add(toriiLight);
+    mapLights.push(toriiLight);
+    mapAnimObjects.push({ light: toriiLight, type: 'cursedPulse', phase: 0, baseIntensity: 1.2 });
+
     // Pillars
     const pillarGeo = new THREE.CylinderGeometry(0.08, 0.1, 3, 8);
     const lPillar = new THREE.Mesh(pillarGeo, toriiMat);
@@ -2285,44 +2413,62 @@ const Renderer3D = (() => {
     beam2.position.set(0, 2.7, -4);
     mapGroup.add(beam2);
 
-    // Floating slash marks
-    for (let i = 0; i < 20; i++) {
-      const slashGeo = new THREE.PlaneGeometry(0.3 + Math.random() * 0.4, 0.02);
+    // Floating slash marks — sweep across the screen
+    for (let i = 0; i < 25; i++) {
+      const slashGeo = new THREE.PlaneGeometry(0.3 + Math.random() * 0.5, 0.025);
       const slashMat = new THREE.MeshBasicMaterial({
-        color: 0xff2200,
+        color: Math.random() > 0.3 ? 0xff2200 : 0xff6600,
         transparent: true,
-        opacity: 0.4 + Math.random() * 0.3,
+        opacity: 0.5 + Math.random() * 0.3,
         side: THREE.DoubleSide
       });
       const slash = new THREE.Mesh(slashGeo, slashMat);
-      slash.position.set(
-        (Math.random() - 0.5) * 10,
-        0.5 + Math.random() * 5,
-        (Math.random() - 0.5) * 6
-      );
+      const sx = (Math.random() - 0.5) * 10;
+      const sy = 0.5 + Math.random() * 5;
+      const sz = (Math.random() - 0.5) * 6;
+      slash.position.set(sx, sy, sz);
       slash.rotation.z = (Math.random() - 0.5) * 1.5;
       slash.rotation.y = Math.random() * Math.PI;
       mapGroup.add(slash);
-      mapAnimObjects.push({ mesh: slash, type: 'flicker', phase: Math.random() * Math.PI * 2 });
+      mapAnimObjects.push({
+        mesh: slash, type: 'slashSweep', phase: Math.random() * Math.PI * 2,
+        baseX: sx, baseY: sy, baseZ: sz, baseRotZ: slash.rotation.z,
+        speed: 1 + Math.random() * 2
+      });
     }
 
-    // Floating debris
-    for (let i = 0; i < 12; i++) {
-      const debrisGeo = new THREE.TetrahedronGeometry(0.05 + Math.random() * 0.08, 0);
+    // Floating debris — orbiting with spin
+    for (let i = 0; i < 16; i++) {
+      const debrisGeo = new THREE.TetrahedronGeometry(0.05 + Math.random() * 0.1, 0);
       const debrisMat = new THREE.MeshStandardMaterial({
-        color: 0x2a0a0a,
-        roughness: 0.8,
-        emissive: 0x220000,
-        emissiveIntensity: 0.2
+        color: 0x3a1010,
+        roughness: 0.6,
+        emissive: 0x440000,
+        emissiveIntensity: 0.4
       });
       const debris = new THREE.Mesh(debrisGeo, debrisMat);
-      debris.position.set(
-        (Math.random() - 0.5) * 8,
-        0.5 + Math.random() * 3,
-        (Math.random() - 0.5) * 4
-      );
+      const dx = (Math.random() - 0.5) * 8;
+      const dy = 0.5 + Math.random() * 3;
+      const dz = (Math.random() - 0.5) * 4;
+      debris.position.set(dx, dy, dz);
       mapGroup.add(debris);
-      mapAnimObjects.push({ mesh: debris, type: 'orbit', phase: Math.random() * Math.PI * 2, radius: 0.3 + Math.random() * 0.5 });
+      mapAnimObjects.push({
+        mesh: debris, type: 'domainOrbit', phase: Math.random() * Math.PI * 2,
+        baseX: dx, baseY: dy, baseZ: dz,
+        radius: 0.3 + Math.random() * 0.8, speed: 0.3 + Math.random() * 0.7,
+        spinX: 1 + Math.random() * 2, spinZ: 0.5 + Math.random()
+      });
+    }
+
+    // Pulsing ground rune circles
+    for (let i = 0; i < 4; i++) {
+      const runeGeo = new THREE.RingGeometry(0.3, 0.35, 16);
+      const runeMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+      const rune = new THREE.Mesh(runeGeo, runeMat);
+      rune.rotation.x = -Math.PI / 2;
+      rune.position.set((Math.random() - 0.5) * 6, 0.03, (Math.random() - 0.5) * 3);
+      mapGroup.add(rune);
+      mapAnimObjects.push({ mesh: rune, type: 'runeExpand', phase: Math.random() * Math.PI * 2, baseScale: 1 });
     }
   }
 
@@ -2510,26 +2656,112 @@ const Renderer3D = (() => {
     // Animate map objects
     const t = performance.now() / 1000;
     mapAnimObjects.forEach(obj => {
+      // Stars twinkle
       if (obj.type === 'twinkle' && obj.mesh) {
         obj.mesh.material.opacity = 0.3 + 0.7 * Math.abs(Math.sin(t * 2 + obj.phase));
         obj.mesh.material.transparent = true;
       }
-      if (obj.type === 'float' && obj.mesh) {
-        obj.mesh.position.y += Math.sin(t * (obj.speed || 1) + obj.phase) * 0.003;
-        obj.mesh.position.x += Math.sin(t * 0.3 + obj.phase) * 0.002;
+
+      // Neon sign/light flicker — stuttery, realistic
+      if (obj.type === 'neonFlicker') {
+        const flick = Math.sin(t * 8 + obj.phase) * Math.sin(t * 13 + obj.phase * 2);
+        const stutter = flick > 0.7 ? 0.2 : 1.0; // occasional dip
+        const val = (obj.baseIntensity || 0.8) * (0.6 + 0.4 * Math.sin(t * 3 + obj.phase)) * stutter;
+        if (obj.light) obj.light.intensity = val;
+        if (obj.mesh) { obj.mesh.material.opacity = val; obj.mesh.material.transparent = true; }
       }
-      if (obj.type === 'pulse' && obj.light) {
-        obj.light.intensity = 1.0 + 0.8 * Math.sin(t * 2 + obj.phase);
+
+      // Fluorescent overhead flicker
+      if (obj.type === 'fluorescent' && obj.light) {
+        const buzz = Math.sin(t * 30 + obj.phase) > 0.95 ? 0.3 : 1.0;
+        obj.light.intensity = (obj.baseIntensity || 0.6) * buzz * (0.9 + 0.1 * Math.sin(t * 5));
       }
-      if (obj.type === 'flicker' && obj.mesh) {
-        obj.mesh.material.opacity = 0.2 + 0.4 * Math.abs(Math.sin(t * 3 + obj.phase));
+
+      // Moving train
+      if (obj.type === 'train' && obj.mesh) {
+        // Move from left to right, loop
+        const trainX = ((t * (obj.speed || 2.5) + obj.phase) % 28) - 14;
+        obj.mesh.position.x = trainX;
       }
-      if (obj.type === 'orbit' && obj.mesh) {
-        const ox = obj.mesh.position.x;
-        const oy = obj.mesh.position.y;
-        obj.mesh.position.y = oy + Math.sin(t + obj.phase) * 0.002;
-        obj.mesh.rotation.x += dt * 0.5;
-        obj.mesh.rotation.z += dt * 0.3;
+
+      // Dust particles floating gently
+      if (obj.type === 'dustFloat' && obj.mesh) {
+        obj.mesh.position.y = obj.baseY + Math.sin(t * obj.speed + obj.phase) * obj.amplitude;
+        obj.mesh.position.x = obj.baseX + Math.sin(t * obj.speed * 0.5 + obj.phase * 1.3) * 0.4;
+        obj.mesh.material.opacity = 0.3 + 0.4 * Math.abs(Math.sin(t * 0.8 + obj.phase));
+      }
+
+      // Cursed energy pulse (Shibuya sky/ground glow)
+      if (obj.type === 'cursedPulse' && obj.light) {
+        const p = 0.7 + 0.3 * Math.sin(t * 1.5 + obj.phase);
+        obj.light.intensity = (obj.baseIntensity || 1) * p;
+      }
+
+      // Buildings sway (corrupted Shibuya)
+      if (obj.type === 'sway' && obj.mesh) {
+        obj.mesh.rotation.z = obj.baseTilt + Math.sin(t * 0.4 + obj.phase) * obj.amplitude;
+      }
+
+      // Rising cursed energy columns
+      if (obj.type === 'risingColumn' && obj.mesh) {
+        const rise = ((t * obj.speed + obj.phase) % 4);
+        obj.mesh.position.y = rise;
+        obj.mesh.material.opacity = rise < 3 ? 0.35 * (1 - rise / 4) : 0;
+        obj.mesh.position.x = obj.baseX + Math.sin(t * 0.5 + obj.phase) * 0.2;
+      }
+
+      // Cursed wisps — orbit in 3D space
+      if (obj.type === 'cursedWisp' && obj.mesh) {
+        const s = obj.speed || 1;
+        obj.mesh.position.x = obj.baseX + Math.sin(t * s + obj.phase) * obj.orbitRadius;
+        obj.mesh.position.y = obj.baseY + Math.sin(t * s * 0.7 + obj.phase) * 0.5;
+        obj.mesh.position.z = obj.baseZ + Math.cos(t * s * 0.8 + obj.phase) * obj.orbitRadius * 0.5;
+        obj.mesh.material.opacity = 0.3 + 0.4 * Math.abs(Math.sin(t * 2 + obj.phase));
+      }
+
+      // Ground crack pulse (Shibuya)
+      if (obj.type === 'groundCrackPulse' && obj.mesh) {
+        obj.mesh.material.opacity = 0.2 + 0.4 * Math.abs(Math.sin(t * 1.2 + obj.phase));
+      }
+
+      // Domain heartbeat pulse — double-beat pattern
+      if (obj.type === 'heartbeat' && obj.light) {
+        const beat = Math.abs(Math.sin(t * 3)) > 0.85 ? 1.5 : (Math.abs(Math.sin(t * 3 + 0.4)) > 0.9 ? 1.3 : 0.7);
+        obj.light.intensity = (obj.baseIntensity || 2.5) * beat;
+      }
+
+      // Orbiting lights (Domain)
+      if (obj.type === 'orbitLight' && obj.light) {
+        obj.light.position.x = Math.cos(t * obj.speed + obj.phase) * obj.radius;
+        obj.light.position.z = Math.sin(t * obj.speed + obj.phase) * obj.radius;
+        obj.light.position.y = obj.baseY + Math.sin(t * 0.8 + obj.phase) * 0.5;
+      }
+
+      // Slash sweep (Domain) — slashes drift and re-angle
+      if (obj.type === 'slashSweep' && obj.mesh) {
+        const s = obj.speed || 1;
+        obj.mesh.position.x = obj.baseX + Math.sin(t * s * 0.3 + obj.phase) * 1.5;
+        obj.mesh.position.y = obj.baseY + Math.sin(t * s * 0.5 + obj.phase) * 0.8;
+        obj.mesh.rotation.z = obj.baseRotZ + Math.sin(t * s * 0.7 + obj.phase) * 0.3;
+        obj.mesh.material.opacity = 0.2 + 0.5 * Math.abs(Math.sin(t * s * 1.5 + obj.phase));
+      }
+
+      // Domain orbit debris — full 3D orbit with spin
+      if (obj.type === 'domainOrbit' && obj.mesh) {
+        const s = obj.speed || 0.5;
+        obj.mesh.position.x = obj.baseX + Math.sin(t * s + obj.phase) * obj.radius;
+        obj.mesh.position.y = obj.baseY + Math.sin(t * s * 1.3 + obj.phase) * 0.4;
+        obj.mesh.position.z = obj.baseZ + Math.cos(t * s + obj.phase) * obj.radius;
+        obj.mesh.rotation.x += dt * obj.spinX;
+        obj.mesh.rotation.z += dt * obj.spinZ;
+      }
+
+      // Ground rune circles — expand and fade, repeat
+      if (obj.type === 'runeExpand' && obj.mesh) {
+        const cycle = ((t * 0.5 + obj.phase) % 3); // 3 second cycle
+        const scale = 1 + cycle * 1.5;
+        obj.mesh.scale.setScalar(scale);
+        obj.mesh.material.opacity = Math.max(0, 0.4 * (1 - cycle / 3));
       }
     });
 
